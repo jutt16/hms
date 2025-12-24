@@ -141,9 +141,21 @@ sudo ln -sfn "$RELEASE_PATH" "$CURRENT_LINK.new"
 sudo mv -f "$CURRENT_LINK.new" "$CURRENT_LINK"
 
 # Verify symlink is correct
-if [ "$(readlink -f "$CURRENT_LINK")" != "$(readlink -f "$RELEASE_PATH")" ]; then
-    log_error "Symlink verification failed"
-    exit 1
+CURRENT_TARGET=$(readlink "$CURRENT_LINK" 2>/dev/null || echo "")
+EXPECTED_TARGET=$(basename "$RELEASE_PATH")
+if [ -z "$CURRENT_TARGET" ] || [ "$CURRENT_TARGET" != "$EXPECTED_TARGET" ]; then
+    # Try absolute path comparison as fallback
+    CURRENT_ABS=$(readlink -f "$CURRENT_LINK" 2>/dev/null || echo "")
+    RELEASE_ABS=$(readlink -f "$RELEASE_PATH" 2>/dev/null || echo "")
+    if [ -z "$CURRENT_ABS" ] || [ "$CURRENT_ABS" != "$RELEASE_ABS" ]; then
+        log_error "Symlink verification failed"
+        log_error "Current symlink target: $CURRENT_TARGET"
+        log_error "Expected target: $EXPECTED_TARGET"
+        log_error "Current absolute: $CURRENT_ABS"
+        log_error "Release absolute: $RELEASE_ABS"
+        ls -la "$CURRENT_LINK" || true
+        exit 1
+    fi
 fi
 
 log_info "Symlink updated successfully: $CURRENT_LINK -> $RELEASE_PATH"

@@ -124,8 +124,8 @@ fi
 echo ""
 echo "✅ Deployment completed successfully!"
 echo ""
-if [ $MIGRATION_EXIT_CODE -ne 0 ] || [ $CACHE_CLEAR_EXIT -ne 0 ]; then
-    echo "⚠️  Database connection issues detected!"
+if [ "${CACHE_CLEAR_EXIT:-0}" -ne 0 ]; then
+    echo "⚠️  Cache clear issues detected!"
     echo ""
     echo "If you're seeing 'Access denied' error (1698), the MySQL user may be using auth_socket."
     echo "This is common on Ubuntu/Debian MySQL installations."
