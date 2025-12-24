@@ -14,12 +14,21 @@ This directory contains deployment scripts and configuration files for the Hospi
    - Supervisor (for queue workers)
 
 2. **GitHub Secrets Setup:**
-   Add the following secrets to your GitHub repository:
-   - `VPS_HOST`: Your VPS IP address or domain
-   - `VPS_USER`: SSH username (usually `root` or `ubuntu`)
-   - `VPS_SSH_KEY`: Private SSH key for authentication
-   - `VPS_PORT`: SSH port (default: 22)
-   - `VPS_DEPLOY_PATH`: Deployment path (default: `/var/www/hms`)
+   
+   Go to your GitHub repository → Settings → Secrets and variables → Actions → New repository secret
+   
+   Add the following secrets:
+   
+   - **`VPS_HOST`** (Required): Your VPS IP address or domain (e.g., `192.168.1.100` or `hms.example.com`)
+   - **`VPS_USER`** (Required): SSH username (usually `root` or `ubuntu`)
+   - **`VPS_SSH_KEY`** (Required): Private SSH key for authentication
+     - Generate a key pair: `ssh-keygen -t ed25519 -C "github-actions" -f ~/.ssh/github_actions`
+     - Copy the private key (`~/.ssh/github_actions`) content to this secret
+     - Add the public key to your VPS: `cat ~/.ssh/github_actions.pub >> ~/.ssh/authorized_keys`
+   - **`VPS_PORT`** (Optional): SSH port (default: `22`)
+   - **`VPS_DEPLOY_PATH`** (Optional): Deployment path (default: `/var/www/hms`)
+   
+   **Note:** If secrets are not configured, the deployment job will be skipped automatically.
 
 ## Initial VPS Setup
 
