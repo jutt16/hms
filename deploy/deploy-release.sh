@@ -135,8 +135,13 @@ sudo -u www-data php artisan view:cache || log_warn "View cache failed"
 
 # Atomically update current symlink
 log_info "Updating current symlink atomically..."
-# Remove any existing broken symlinks or temp files
+# Remove any existing broken symlinks, temp files, or directory
 sudo rm -f "$CURRENT_LINK.new" "$CURRENT_LINK.tmp" 2>/dev/null || true
+# If current exists as a directory, remove it (shouldn't happen, but handle it)
+if [ -d "$CURRENT_LINK" ] && [ ! -L "$CURRENT_LINK" ]; then
+    log_warn "$CURRENT_LINK exists as a directory, removing it..."
+    sudo rm -rf "$CURRENT_LINK"
+fi
 # Create new symlink in temp location
 sudo ln -sfn "$RELEASE_PATH" "$CURRENT_LINK.new"
 # Atomically move it into place
