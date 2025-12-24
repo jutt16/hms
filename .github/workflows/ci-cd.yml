@@ -343,17 +343,37 @@ jobs:
             
             # Atomically update current symlink
             echo "🔗 Updating current symlink atomically..."
+            # Remove any existing broken symlinks or temp files
+            sudo rm -f "$CURRENT_LINK.new" "$CURRENT_LINK.tmp" 2>/dev/null || true
+            # Create new symlink in temp location
             sudo ln -sfn "$RELEASE_PATH" "$CURRENT_LINK.new"
+            # Atomically move it into place
             sudo mv -f "$CURRENT_LINK.new" "$CURRENT_LINK"
             
             # Verify symlink is correct
+            if [ ! -L "$CURRENT_LINK" ]; then
+              echo "::error::Symlink does not exist: $CURRENT_LINK"
+              ls -la "$BASE_PATH" | grep -E "(current|releases)" || true
+              exit 1
+            fi
+            
             CURRENT_TARGET=$(readlink "$CURRENT_LINK" 2>/dev/null || echo "")
-            EXPECTED_TARGET=$(basename "$RELEASE_PATH")
-            if [ -z "$CURRENT_TARGET" ] || [ "$CURRENT_TARGET" != "$EXPECTED_TARGET" ]; then
-              # Try absolute path comparison as fallback
-              CURRENT_ABS=$(readlink -f "$CURRENT_LINK" 2>/dev/null || echo "")
-              RELEASE_ABS=$(readlink -f "$RELEASE_PATH" 2>/dev/null || echo "")
-              if [ -z "$CURRENT_ABS" ] || [ "$CURRENT_ABS" != "$RELEASE_ABS" ]; then
+            EXPECTED_TARGET="$RELEASE_PATH"
+            
+            # Check if symlink points to the correct path (relative or absolute)
+            if [ -z "$CURRENT_TARGET" ]; then
+              echo "::error::Symlink target is empty"
+              ls -la "$CURRENT_LINK" || true
+              exit 1
+            fi
+            
+            # Resolve both paths to absolute and compare
+            CURRENT_ABS=$(readlink -f "$CURRENT_LINK" 2>/dev/null || echo "")
+            RELEASE_ABS=$(readlink -f "$RELEASE_PATH" 2>/dev/null || echo "")
+            
+            if [ -z "$CURRENT_ABS" ] || [ -z "$RELEASE_ABS" ] || [ "$CURRENT_ABS" != "$RELEASE_ABS" ]; then
+              # Also check if the symlink target matches the expected path
+              if [ "$CURRENT_TARGET" != "$EXPECTED_TARGET" ] && [ "$CURRENT_TARGET" != "$RELEASE_PATH" ]; then
                 echo "::error::Symlink verification failed"
                 echo "Current symlink target: $CURRENT_TARGET"
                 echo "Expected target: $EXPECTED_TARGET"
