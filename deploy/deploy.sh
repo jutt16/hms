@@ -8,30 +8,77 @@ echo "🚀 Starting deployment..."
 DEPLOY_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$DEPLOY_DIR"
 
-# Check if .env file exists
+# Check if .env file exists, create from .env.example if it doesn't
 if [ ! -f .env ]; then
-    echo "❌ Error: .env file not found!"
-    echo "Please create a .env file with your database configuration."
-    echo "Required variables:"
-    echo "  - DB_CONNECTION=mysql"
-    echo "  - DB_HOST=127.0.0.1"
-    echo "  - DB_PORT=3306"
-    echo "  - DB_DATABASE=your_database_name"
-    echo "  - DB_USERNAME=your_database_user"
-    echo "  - DB_PASSWORD=your_database_password"
-    exit 1
+    echo "⚠️  .env file not found!"
+    if [ -f .env.example ]; then
+        echo "📋 Copying .env.example to .env..."
+        cp .env.example .env
+        echo "✅ Created .env file from .env.example"
+    else
+        echo "⚠️  .env.example not found, creating minimal .env file..."
+        cat > .env << 'EOF'
+APP_NAME=HMS
+APP_ENV=production
+APP_KEY=
+APP_DEBUG=false
+APP_URL=http://localhost
+
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=hms
+DB_USERNAME=root
+DB_PASSWORD=
+
+SESSION_DRIVER=database
+QUEUE_CONNECTION=database
+CACHE_STORE=database
+EOF
+        echo "✅ Created minimal .env file"
+    fi
+    echo ""
+    echo "⚠️  IMPORTANT: You must configure your .env file!"
+    echo "   Required values:"
+    echo "   - APP_KEY (will be generated automatically if missing)"
+    echo "   - DB_CONNECTION=mysql"
+    echo "   - DB_DATABASE=your_database_name"
+    echo "   - DB_USERNAME=your_database_user"
+    echo "   - DB_PASSWORD=your_database_password"
+    echo "   - APP_URL=your_domain_or_ip"
+    echo ""
 fi
 
 # Load environment variables
 export $(cat .env | grep -v '^#' | xargs)
 
+# Generate APP_KEY if it's missing
+if [ -z "$APP_KEY" ] || [ "$APP_KEY" == "" ]; then
+    echo "🔑 Generating application key..."
+    php artisan key:generate --force
+    # Reload environment variables after key generation
+    export $(cat .env | grep -v '^#' | xargs)
+fi
+
 # Verify database connection is set to MySQL
+DB_CONFIGURED=true
 if [ -z "$DB_CONNECTION" ] || [ "$DB_CONNECTION" != "mysql" ]; then
     echo "⚠️  Warning: DB_CONNECTION is not set to 'mysql'"
     echo "Current value: ${DB_CONNECTION:-'not set'}"
     echo "For production, DB_CONNECTION should be set to 'mysql' in your .env file"
+    DB_CONFIGURED=false
+fi
+
+# Check if database credentials are set
+if [ -z "$DB_DATABASE" ] || [ "$DB_DATABASE" == "" ] || [ "$DB_DATABASE" == "hms" ]; then
+    echo "⚠️  Warning: DB_DATABASE appears to be using default value"
+    DB_CONFIGURED=false
+fi
+
+if [ "$DB_CONFIGURED" = false ]; then
     echo ""
-    echo "Continuing with migration attempt..."
+    echo "⚠️  Database may not be configured correctly. Migration will be attempted but may fail."
+    echo ""
 fi
 
 # Install Composer dependencies (production only)
@@ -46,23 +93,33 @@ composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
 echo "🔐 Setting permissions..."
 chmod -R 775 storage bootstrap/cache
 
-# Run migrations
+# Run migrations (skip if database is not configured)
 echo "🗄️  Running database migrations..."
-if ! php artisan migrate --force; then
+set +e  # Temporarily disable exit on error for migration
+php artisan migrate --force
+MIGRATION_EXIT_CODE=$?
+set -e  # Re-enable exit on error
+
+if [ $MIGRATION_EXIT_CODE -eq 0 ]; then
+    echo "✅ Migrations completed successfully"
+else
     echo ""
-    echo "❌ Migration failed!"
+    echo "⚠️  Migration failed (exit code: $MIGRATION_EXIT_CODE)"
     echo ""
-    echo "Common issues:"
-    echo "  1. Database connection not configured correctly in .env"
-    echo "  2. Database server not running"
-    echo "  3. Database credentials incorrect"
-    echo "  4. Database does not exist"
+    echo "This is expected if:"
+    echo "  - Database is not yet configured in .env"
+    echo "  - Database server is not running"
+    echo "  - Database credentials are incorrect"
     echo ""
-    echo "Please check your .env file and ensure:"
-    echo "  - DB_CONNECTION=mysql (not sqlite)"
-    echo "  - DB_HOST, DB_PORT, DB_DATABASE, DB_USERNAME, DB_PASSWORD are correct"
+    echo "To fix, ensure your .env file has:"
+    echo "  - DB_CONNECTION=mysql"
+    echo "  - DB_HOST=127.0.0.1 (or your MySQL host)"
+    echo "  - DB_PORT=3306"
+    echo "  - DB_DATABASE=your_actual_database_name"
+    echo "  - DB_USERNAME=your_database_user"
+    echo "  - DB_PASSWORD=your_database_password"
     echo ""
-    exit 1
+    echo "⚠️  Continuing with other deployment steps..."
 fi
 
 # Clear and cache configuration
