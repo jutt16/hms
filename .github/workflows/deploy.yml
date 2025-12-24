@@ -98,10 +98,6 @@ jobs:
           # Copy to root so SCP doesn't preserve deploy/ directory structure
           cp deploy/hms.tar.gz hms.tar.gz
 
-      - name: Cleanup local package
-        if: always()
-        run: rm -f hms.tar.gz
-
       - name: Deploy to VPS
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -184,4 +180,8 @@ jobs:
             
             # Cleanup
             sudo rm -f /tmp/hms.tar.gz
+
+      - name: Cleanup local package
+        if: always()
+        run: rm -f hms.tar.gz
 
