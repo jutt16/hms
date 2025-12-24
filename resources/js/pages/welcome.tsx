@@ -29,7 +29,7 @@ export default function Welcome() {
                                     href="/login"
                                     className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 px-4 py-2 rounded-md text-sm font-medium transition-colors"
                                 >
-                                    Login Here
+                                    Login
                                 </Link>
                                 <Link
                                     href="/register"
