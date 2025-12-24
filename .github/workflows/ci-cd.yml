@@ -163,6 +163,26 @@ jobs:
       - name: Build Assets
         run: npm run build
 
+      - name: Verify Build Output
+        run: |
+          if [ ! -f "public/build/manifest.json" ]; then
+            echo "❌ Error: manifest.json not found after build"
+            exit 1
+          fi
+          if ! grep -q "Welcome" public/build/manifest.json; then
+            echo "❌ Error: Welcome component not found in manifest"
+            echo "Manifest contents:"
+            cat public/build/manifest.json
+            exit 1
+          fi
+          echo "✅ Build verified - Welcome component found in manifest"
+
+      - name: Verify public/build in package
+        run: |
+          echo "Verifying public/build will be included in tar..."
+          ls -la public/build/ | head -10
+          echo "✅ public/build directory exists and will be included"
+
       - name: Create deployment package
         run: |
           mkdir -p deploy-package

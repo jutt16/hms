@@ -25,9 +25,26 @@ if [ -f package.json ]; then
 fi
 
 # Build frontend assets (assets are pre-built in CI/CD, but rebuild here as fallback)
+# Only rebuild if manifest doesn't exist or is incomplete
 if [ -f package.json ]; then
-    echo "🏗️  Building frontend assets..."
-    npm run build
+    if [ ! -f "public/build/manifest.json" ] || ! grep -q "Welcome" public/build/manifest.json 2>/dev/null; then
+        echo "🏗️  Building frontend assets (manifest missing or incomplete)..."
+        npm run build
+        
+        # Verify build succeeded
+        if [ ! -f "public/build/manifest.json" ]; then
+            echo "❌ Error: Build failed - manifest.json not found"
+            exit 1
+        fi
+        
+        if ! grep -q "Welcome" public/build/manifest.json; then
+            echo "⚠️  Warning: Welcome component not found in manifest after rebuild"
+        else
+            echo "✅ Build successful - Welcome component found in manifest"
+        fi
+    else
+        echo "✅ Frontend assets already built and verified"
+    fi
 fi
 
 # Set proper permissions
