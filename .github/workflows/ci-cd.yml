@@ -202,30 +202,25 @@ jobs:
             set -e
             
             DEPLOY_PATH="${{ secrets.VPS_DEPLOY_PATH || '/var/www/hms' }}"
-            RELEASE_DIR="$DEPLOY_PATH/releases/$(date +%Y%m%d-%H%M%S)"
             
-            # Create releases directory if it doesn't exist
-            sudo mkdir -p "$DEPLOY_PATH/releases"
-            sudo mkdir -p "$RELEASE_DIR"
+            # Create deployment directory if it doesn't exist
+            sudo mkdir -p "$DEPLOY_PATH"
             
-            # Extract new deployment
-            sudo tar -xzf /tmp/hms.tar.gz -C "$RELEASE_DIR"
+            # Backup current deployment (if it exists)
+            if [ -d "$DEPLOY_PATH" ] && [ "$(ls -A $DEPLOY_PATH)" ]; then
+              sudo cp -r "$DEPLOY_PATH" "${DEPLOY_PATH}.backup.$(date +%Y%m%d-%H%M%S)"
+            fi
+            
+            # Extract new deployment directly to deployment path
+            sudo tar -xzf /tmp/hms.tar.gz -C "$DEPLOY_PATH" --strip-components=0
             
             # Run deployment script
-            cd "$RELEASE_DIR"
+            cd "$DEPLOY_PATH"
             sudo chmod +x deploy/deploy.sh
             sudo bash deploy/deploy.sh
             
-            # Update symlink
-            cd "$DEPLOY_PATH"
-            if [ -L "current" ]; then
-              sudo rm -f current
-            fi
-            sudo ln -s "$RELEASE_DIR" current
-            
-            # Cleanup old releases (keep last 5)
-            cd "$DEPLOY_PATH/releases"
-            ls -t | tail -n +6 | xargs -r sudo rm -rf
+            # Cleanup old backups (keep last 3)
+            sudo find "$(dirname $DEPLOY_PATH)" -maxdepth 1 -type d -name "$(basename $DEPLOY_PATH).backup.*" | sort -r | tail -n +4 | xargs -r sudo rm -rf
             
             # Cleanup
             sudo rm -f /tmp/hms.tar.gz

@@ -183,7 +183,7 @@ sudo ln -s releases/$(date +%Y%m%d-%H%M%S) current
 
 1. **Set up environment file:**
 ```bash
-cd /var/www/hms/current
+cd /var/www/hms
 sudo cp .env.example .env
 sudo nano .env
 # Update with your actual values
@@ -203,7 +203,7 @@ php artisan storage:link
 
 ## Monitoring
 
-- **Application Logs**: `/var/www/hms/current/storage/logs/laravel.log`
+- **Application Logs**: `/var/www/hms/storage/logs/laravel.log`
 - **Queue Worker Logs**: `/var/www/hms/storage/logs/worker.log`
 - **Nginx Logs**: `/var/log/nginx/hms-access.log` and `/var/log/nginx/hms-error.log`
 
@@ -211,14 +211,40 @@ php artisan storage:link
 
 ### Permission Issues
 ```bash
-sudo chown -R www-data:www-data /var/www/hms/current/storage
-sudo chmod -R 775 /var/www/hms/current/storage
+sudo chown -R www-data:www-data /var/www/hms/storage
+sudo chmod -R 775 /var/www/hms/storage
 ```
 
 ### Queue Workers Not Running
 ```bash
 sudo supervisorctl status
 sudo supervisorctl restart hms-worker:*
+```
+
+### Vite Manifest Errors
+
+If you're getting errors like "Unable to locate file in Vite manifest", the assets need to be rebuilt:
+
+**Quick Fix (Recommended):**
+```bash
+cd /var/www/hms  # or your deployment path
+chmod +x deploy/quick-fix.sh
+./deploy/quick-fix.sh
+```
+
+**Manual Fix:**
+```bash
+cd /var/www/hms
+npm ci
+npm run build
+php artisan view:clear
+php artisan config:clear
+```
+
+**Verify the fix:**
+```bash
+# Check if Welcome is in the manifest
+grep -q "Welcome" public/build/manifest.json && echo "✅ Fixed" || echo "❌ Still missing"
 ```
 
 ### Clear Caches
