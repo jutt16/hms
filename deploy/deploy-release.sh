@@ -72,6 +72,15 @@ if [ ! -f "$RELEASE_PATH/composer.json" ]; then
     exit 1
 fi
 
+# Verify build files are present
+if [ ! -f "$RELEASE_PATH/public/build/manifest.json" ]; then
+    log_error "Build files not found in extracted release!"
+    log_error "Expected: $RELEASE_PATH/public/build/manifest.json"
+    ls -la "$RELEASE_PATH/public/" || true
+    exit 1
+fi
+log_info "Build files verified in release"
+
 # Set proper ownership
 log_info "Setting file ownership (www-data:www-data)..."
 sudo chown -R www-data:www-data "$RELEASE_PATH"

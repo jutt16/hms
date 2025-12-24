@@ -85,6 +85,13 @@ jobs:
       - name: Create deployment package
         run: |
           mkdir -p deploy
+          # Verify build files exist before packaging
+          if [ ! -d "public/build" ] || [ ! -f "public/build/manifest.json" ]; then
+            echo "::error::Build files not found! Run 'npm run build' first."
+            exit 1
+          fi
+          echo "✅ Build files verified:"
+          ls -lh public/build/ | head -10
           tar -czf deploy/hms.tar.gz \
             --exclude='.git' \
             --exclude='.github' \
@@ -99,6 +106,12 @@ jobs:
             --exclude='vendor' \
             --exclude='deploy/hms.tar.gz' \
             .
+          # Verify build files are in the archive
+          if ! tar -tzf deploy/hms.tar.gz | grep -q "public/build/manifest.json"; then
+            echo "::error::Build files not found in archive!"
+            exit 1
+          fi
+          echo "✅ Build files verified in archive"
           # Copy to root so SCP doesn't preserve deploy/ directory structure
           cp deploy/hms.tar.gz hms.tar.gz
 
@@ -199,6 +212,15 @@ jobs:
                 echo "::error::Extraction failed - composer.json not found"
                 exit 1
               fi
+              
+              # Verify build files are present
+              if [ ! -f "$RELEASE_PATH/public/build/manifest.json" ]; then
+                echo "::error::Build files not found in extracted release!"
+                echo "Expected: $RELEASE_PATH/public/build/manifest.json"
+                ls -la "$RELEASE_PATH/public/" || true
+                exit 1
+              fi
+              echo "✅ Build files verified in release"
               
               # Set ownership and permissions
               echo "🔐 Setting ownership and permissions..."
