@@ -152,7 +152,33 @@ The CI/CD pipeline will automatically:
 1. **Run Tests**: Execute all Pest tests
 2. **Lint Code**: Check code style with Pint
 3. **Build Assets**: Compile frontend assets
-4. **Deploy**: Upload and deploy to VPS
+4. **Deploy**: Upload and deploy to VPS with release management
+
+### Release Management
+
+The deployment system uses a release-based approach:
+
+- **Releases**: Stored in `/var/www/hms/releases/YYYYMMDD-HHMMSS`
+- **Current Symlink**: `/var/www/hms/current` points to the active release
+- **Rollback**: Keeps the last 3 releases for easy rollback
+- **Atomic Updates**: Symlink is updated atomically to prevent serving old releases
+- **Automatic Cleanup**: Old releases (beyond 3) are automatically removed
+
+### Deployment Steps
+
+Each deployment:
+
+1. Creates a new release directory with timestamp
+2. Extracts the deployment archive
+3. Sets proper ownership (`www-data:www-data`) and permissions
+4. Links shared directories (storage, .env) if they exist
+5. Runs optional `deploy/deploy.sh` script if present
+6. Runs database migrations (`php artisan migrate --force`)
+7. Optimizes Laravel (config, route, view caching)
+8. Atomically updates the `current` symlink
+9. Reloads NGINX to serve the new release
+10. Cleans up old releases (keeps last 3)
+11. Removes temporary deployment files
 
 ### Manual Deployment
 
@@ -168,18 +194,49 @@ scp hms.tar.gz user@your-vps-ip:/tmp/
 # SSH into VPS
 ssh user@your-vps-ip
 
-# Extract and deploy
+# Extract and deploy using deploy-release.sh
 cd /var/www/hms
-sudo mkdir -p releases/$(date +%Y%m%d-%H%M%S)
-sudo tar -xzf /tmp/hms.tar.gz -C releases/$(date +%Y%m%d-%H%M%S)
-cd releases/$(date +%Y%m%d-%H%M%S)
-sudo bash deploy/deploy.sh
-cd /var/www/hms
-sudo rm -f current
-sudo ln -s releases/$(date +%Y%m%d-%H%M%S) current
+RELEASE_NAME=$(date +%Y%m%d-%H%M%S)
+sudo mkdir -p releases/$RELEASE_NAME
+sudo tar -xzf /tmp/hms.tar.gz -C releases/$RELEASE_NAME --strip-components=0
+
+# Use deploy-release.sh if available, otherwise manual steps
+if [ -f releases/$RELEASE_NAME/deploy/deploy-release.sh ]; then
+  sudo chmod +x releases/$RELEASE_NAME/deploy/deploy-release.sh
+  sudo VPS_DEPLOY_PATH=/var/www/hms bash releases/$RELEASE_NAME/deploy/deploy-release.sh
+else
+  # Manual deployment steps
+  cd releases/$RELEASE_NAME
+  sudo chown -R www-data:www-data .
+  sudo chmod -R 755 .
+  sudo chmod -R 775 storage bootstrap/cache
+  
+  # Run migrations
+  sudo -u www-data php artisan migrate --force
+  
+  # Optimize
+  sudo -u www-data php artisan config:cache
+  sudo -u www-data php artisan route:cache
+  sudo -u www-data php artisan view:cache
+  
+  # Update symlink
+  cd /var/www/hms
+  sudo ln -sfn releases/$RELEASE_NAME current
+  
+  # Reload NGINX
+  sudo nginx -t && sudo systemctl reload nginx
+  
+  # Cleanup old releases (keep last 3)
+  sudo find releases -maxdepth 1 -type d -name "20*" | sort | head -n -3 | xargs -r sudo rm -rf
+fi
+
+# Cleanup
+sudo rm -f /tmp/hms.tar.gz
 ```
 
 ## Post-Deployment
+
+### First-Time Setup
 
 1. **Set up environment file:**
 ```bash
@@ -187,18 +244,35 @@ cd /var/www/hms
 sudo cp .env.example .env
 sudo nano .env
 # Update with your actual values
-php artisan key:generate
+sudo -u www-data php artisan key:generate
 ```
 
 2. **Run migrations and seed:**
 ```bash
-php artisan migrate --force
-php artisan db:seed
+cd /var/www/hms/current
+sudo -u www-data php artisan migrate --force
+sudo -u www-data php artisan db:seed
 ```
 
 3. **Create storage link:**
 ```bash
-php artisan storage:link
+sudo -u www-data php artisan storage:link
+```
+
+### Rollback to Previous Release
+
+If you need to rollback to a previous release:
+
+```bash
+cd /var/www/hms
+# List available releases
+ls -la releases/
+
+# Rollback to a specific release
+sudo ln -sfn releases/YYYYMMDD-HHMMSS current
+
+# Reload NGINX
+sudo nginx -t && sudo systemctl reload nginx
 ```
 
 ## Monitoring

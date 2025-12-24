@@ -314,20 +314,72 @@ jobs:
             # Fix ownership (assume www-data user, adjust if needed)
             sudo chown -R www-data:www-data "$RELEASE_PATH"
             
-            # Run deployment script as www-data user
+            # Run deployment script as www-data user (if it exists)
+            if [ -f "$RELEASE_PATH/deploy/deploy.sh" ]; then
+              echo "🚀 Running deployment script..."
+              cd "$RELEASE_PATH"
+              sudo chmod +x deploy/deploy.sh
+              sudo -u www-data bash deploy/deploy.sh || {
+                echo "::error::Deployment script failed"
+                sudo rm -rf "$RELEASE_PATH"
+                exit 1
+              }
+            fi
+            
+            # Run database migrations
+            echo "🗄️  Running database migrations..."
             cd "$RELEASE_PATH"
-            sudo chmod +x deploy/deploy.sh
-            sudo -u www-data bash deploy/deploy.sh
+            sudo -u www-data php artisan migrate --force || {
+              echo "::error::Database migrations failed"
+              sudo rm -rf "$RELEASE_PATH"
+              exit 1
+            }
             
-            # Update current symlink atomically
-            echo "🔗 Updating current symlink..."
-            sudo ln -sfn "$RELEASE_PATH" "$CURRENT_LINK.tmp"
-            sudo mv -f "$CURRENT_LINK.tmp" "$CURRENT_LINK"
+            # Optimize Laravel
+            echo "⚙️  Optimizing application..."
+            sudo -u www-data php artisan config:cache || true
+            sudo -u www-data php artisan route:cache || true
+            sudo -u www-data php artisan view:cache || true
             
-            # Cleanup old releases (keep last 5)
-            echo "🧹 Cleaning up old releases..."
-            sudo find "$RELEASES_PATH" -maxdepth 1 -type d -name "20*" | sort -r | tail -n +6 | xargs -r sudo rm -rf
-            echo "✅ Kept last 5 releases"
+            # Atomically update current symlink
+            echo "🔗 Updating current symlink atomically..."
+            sudo ln -sfn "$RELEASE_PATH" "$CURRENT_LINK.new"
+            sudo mv -f "$CURRENT_LINK.new" "$CURRENT_LINK"
+            
+            # Verify symlink is correct
+            if [ "$(readlink -f "$CURRENT_LINK")" != "$(readlink -f "$RELEASE_PATH")" ]; then
+              echo "::error::Symlink verification failed"
+              exit 1
+            fi
+            echo "✅ Symlink updated successfully: $CURRENT_LINK -> $RELEASE_PATH"
+            
+            # Cleanup old releases (keep last 3)
+            echo "🧹 Cleaning up old releases (keeping last 3)..."
+            RELEASE_COUNT=$(sudo find "$RELEASES_PATH" -maxdepth 1 -type d -name "20*" | wc -l)
+            if [ "$RELEASE_COUNT" -gt 3 ]; then
+              OLD_RELEASES=$(sudo find "$RELEASES_PATH" -maxdepth 1 -type d -name "20*" | sort | head -n -3)
+              if [ -n "$OLD_RELEASES" ]; then
+                echo "$OLD_RELEASES" | while read -r old_release; do
+                  if [ "$(readlink -f "$old_release")" != "$(readlink -f "$CURRENT_LINK")" ]; then
+                    echo "Removing old release: $(basename "$old_release")"
+                    sudo rm -rf "$old_release"
+                  fi
+                done
+              fi
+              echo "✅ Kept last 3 releases"
+            else
+              echo "✅ Only $RELEASE_COUNT release(s) found, no cleanup needed"
+            fi
+            
+            # Reload NGINX
+            echo "🔄 Reloading NGINX..."
+            if sudo nginx -t > /dev/null 2>&1; then
+              sudo systemctl reload nginx || echo "::warning::NGINX reload failed"
+              echo "✅ NGINX reloaded successfully"
+            else
+              echo "::error::NGINX configuration test failed"
+              exit 1
+            fi
             
             # Cleanup
             sudo rm -f /tmp/hms.tar.gz

@@ -93,34 +93,9 @@ fi
 echo "🔐 Setting permissions..."
 chmod -R 775 storage bootstrap/cache
 
-# Run migrations (skip if database is not configured)
-echo "🗄️  Running database migrations..."
-set +e  # Temporarily disable exit on error for migration
-php artisan migrate --force
-MIGRATION_EXIT_CODE=$?
-set -e  # Re-enable exit on error
-
-if [ $MIGRATION_EXIT_CODE -eq 0 ]; then
-    echo "✅ Migrations completed successfully"
-else
-    echo ""
-    echo "⚠️  Migration failed (exit code: $MIGRATION_EXIT_CODE)"
-    echo ""
-    echo "This is expected if:"
-    echo "  - Database is not yet configured in .env"
-    echo "  - Database server is not running"
-    echo "  - Database credentials are incorrect"
-    echo ""
-    echo "To fix, ensure your .env file has:"
-    echo "  - DB_CONNECTION=mysql"
-    echo "  - DB_HOST=127.0.0.1 (or your MySQL host)"
-    echo "  - DB_PORT=3306"
-    echo "  - DB_DATABASE=hms"
-    echo "  - DB_USERNAME=hms_user"
-    echo "  - DB_PASSWORD=strong_password_here"
-    echo ""
-    echo "⚠️  Continuing with other deployment steps..."
-fi
+# Note: Database migrations are now handled by the main deployment script (deploy-release.sh)
+# This script is for application-specific deployment tasks only
+echo "ℹ️  Database migrations are handled by the main deployment process"
 
 # Clear and cache configuration
 echo "⚙️  Optimizing application..."

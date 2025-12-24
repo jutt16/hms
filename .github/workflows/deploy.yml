@@ -146,7 +146,8 @@ jobs:
           script: |
             set -e
             
-            DEPLOY_PATH="${{ secrets.VPS_DEPLOY_PATH || '/var/www/hms' }}"
+            BASE_PATH="${{ secrets.VPS_DEPLOY_PATH || '/var/www/hms' }}"
+            DEPLOYMENT_ARCHIVE="/tmp/hms.tar.gz"
             
             # Verify file exists before proceeding (check both locations)
             if [ ! -f /tmp/hms.tar.gz ] && [ ! -f /tmp/deploy/hms.tar.gz ]; then
@@ -163,41 +164,115 @@ jobs:
             
             echo "✅ Found deployment file: $(ls -lh /tmp/hms.tar.gz)"
             
-            # Setup deployment structure with releases and current symlink
-            BASE_PATH="${{ secrets.VPS_DEPLOY_PATH || '/var/www/hms' }}"
-            RELEASES_PATH="$BASE_PATH/releases"
-            CURRENT_LINK="$BASE_PATH/current"
-            RELEASE_NAME="$(date +%Y%m%d-%H%M%S)"
-            RELEASE_PATH="$RELEASES_PATH/$RELEASE_NAME"
+            # Check if deploy-release.sh exists in the archive, if not use inline script
+            TEMP_DIR=$(mktemp -d)
+            sudo tar -xzf "$DEPLOYMENT_ARCHIVE" -C "$TEMP_DIR" deploy/deploy-release.sh 2>/dev/null || true
             
-            # Create base and releases directories
-            sudo mkdir -p "$RELEASES_PATH"
-            
-            # Extract new deployment to release directory
-            echo "📦 Extracting to release: $RELEASE_NAME"
-            sudo mkdir -p "$RELEASE_PATH"
-            sudo tar -xzf /tmp/hms.tar.gz -C "$RELEASE_PATH" --strip-components=0
-            
-            # Fix ownership (assume www-data user, adjust if needed)
-            sudo chown -R www-data:www-data "$RELEASE_PATH"
-            
-            # Run deployment script as www-data user
-            cd "$RELEASE_PATH"
-            sudo chmod +x deploy/deploy.sh
-            sudo -u www-data bash deploy/deploy.sh
-            
-            # Update current symlink atomically
-            echo "🔗 Updating current symlink..."
-            sudo ln -sfn "$RELEASE_PATH" "$CURRENT_LINK.tmp"
-            sudo mv -f "$CURRENT_LINK.tmp" "$CURRENT_LINK"
-            
-            # Cleanup old releases (keep last 5)
-            echo "🧹 Cleaning up old releases..."
-            sudo find "$RELEASES_PATH" -maxdepth 1 -type d -name "20*" | sort -r | tail -n +6 | xargs -r sudo rm -rf
-            echo "✅ Kept last 5 releases"
-            
-            # Cleanup
-            sudo rm -f /tmp/hms.tar.gz
+            if [ -f "$TEMP_DIR/deploy/deploy-release.sh" ]; then
+              echo "📦 Using deploy-release.sh from archive..."
+              sudo tar -xzf "$DEPLOYMENT_ARCHIVE" -C "$TEMP_DIR" --strip-components=0
+              sudo chmod +x "$TEMP_DIR/deploy/deploy-release.sh"
+              sudo VPS_DEPLOY_PATH="$BASE_PATH" bash "$TEMP_DIR/deploy/deploy-release.sh"
+              sudo rm -rf "$TEMP_DIR"
+            else
+              echo "📦 Using inline deployment script..."
+              sudo rm -rf "$TEMP_DIR"
+              
+              # Inline deployment script (fallback if deploy-release.sh not in archive)
+              RELEASES_PATH="$BASE_PATH/releases"
+              CURRENT_LINK="$BASE_PATH/current"
+              RELEASE_NAME="$(date +%Y%m%d-%H%M%S)"
+              RELEASE_PATH="$RELEASES_PATH/$RELEASE_NAME"
+              KEEP_RELEASES=3
+              
+              # Create necessary directories
+              echo "📦 Creating directory structure..."
+              sudo mkdir -p "$RELEASES_PATH"
+              sudo mkdir -p "$RELEASE_PATH"
+              
+              # Extract deployment archive
+              echo "📦 Extracting to release: $RELEASE_NAME"
+              sudo tar -xzf "$DEPLOYMENT_ARCHIVE" -C "$RELEASE_PATH" --strip-components=0
+              
+              # Verify extraction
+              if [ ! -f "$RELEASE_PATH/composer.json" ]; then
+                echo "::error::Extraction failed - composer.json not found"
+                exit 1
+              fi
+              
+              # Set ownership and permissions
+              echo "🔐 Setting ownership and permissions..."
+              sudo chown -R www-data:www-data "$RELEASE_PATH"
+              sudo chmod -R 755 "$RELEASE_PATH"
+              sudo chmod -R 775 "$RELEASE_PATH/storage" "$RELEASE_PATH/bootstrap/cache" 2>/dev/null || true
+              
+              # Run deployment script if it exists
+              if [ -f "$RELEASE_PATH/deploy/deploy.sh" ]; then
+                echo "🚀 Running deployment script..."
+                cd "$RELEASE_PATH"
+                sudo chmod +x deploy/deploy.sh
+                sudo -u www-data bash deploy/deploy.sh || {
+                  echo "::error::Deployment script failed"
+                  sudo rm -rf "$RELEASE_PATH"
+                  exit 1
+                }
+              fi
+              
+              # Run database migrations
+              echo "🗄️  Running database migrations..."
+              cd "$RELEASE_PATH"
+              sudo -u www-data php artisan migrate --force || {
+                echo "::error::Database migrations failed"
+                sudo rm -rf "$RELEASE_PATH"
+                exit 1
+              }
+              
+              # Optimize Laravel
+              echo "⚙️  Optimizing application..."
+              sudo -u www-data php artisan config:cache || true
+              sudo -u www-data php artisan route:cache || true
+              sudo -u www-data php artisan view:cache || true
+              
+              # Atomically update current symlink
+              echo "🔗 Updating current symlink atomically..."
+              sudo ln -sfn "$RELEASE_PATH" "$CURRENT_LINK.new"
+              sudo mv -f "$CURRENT_LINK.new" "$CURRENT_LINK"
+              
+              # Verify symlink
+              if [ "$(readlink -f "$CURRENT_LINK")" != "$(readlink -f "$RELEASE_PATH")" ]; then
+                echo "::error::Symlink verification failed"
+                exit 1
+              fi
+              
+              # Reload NGINX
+              echo "🔄 Reloading NGINX..."
+              if sudo nginx -t > /dev/null 2>&1; then
+                sudo systemctl reload nginx || echo "::warning::NGINX reload failed"
+              else
+                echo "::error::NGINX configuration test failed"
+                exit 1
+              fi
+              
+              # Clean up old releases (keep last 3)
+              echo "🧹 Cleaning up old releases (keeping last $KEEP_RELEASES)..."
+              RELEASE_COUNT=$(sudo find "$RELEASES_PATH" -maxdepth 1 -type d -name "20*" | wc -l)
+              if [ "$RELEASE_COUNT" -gt "$KEEP_RELEASES" ]; then
+                OLD_RELEASES=$(sudo find "$RELEASES_PATH" -maxdepth 1 -type d -name "20*" | sort | head -n -$KEEP_RELEASES)
+                if [ -n "$OLD_RELEASES" ]; then
+                  echo "$OLD_RELEASES" | while read -r old_release; do
+                    if [ "$(readlink -f "$old_release")" != "$(readlink -f "$CURRENT_LINK")" ]; then
+                      echo "Removing old release: $(basename "$old_release")"
+                      sudo rm -rf "$old_release"
+                    fi
+                  done
+                fi
+              fi
+              
+              # Cleanup
+              sudo rm -f "$DEPLOYMENT_ARCHIVE"
+              
+              echo "✅ Deployment completed successfully!"
+            fi
 
       - name: Cleanup local package
         if: always()
