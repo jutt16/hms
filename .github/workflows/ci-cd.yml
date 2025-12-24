@@ -66,15 +66,15 @@ jobs:
             exit 1
           fi
           echo "✅ Build manifest found"
-          if grep -q "Welcome" public/build/manifest.json; then
+          if grep -q "welcome" public/build/manifest.json; then
             echo "✅ Welcome component found in manifest"
           else
             echo "❌ Error: Welcome component not found in manifest"
             echo "Manifest contents:"
             cat public/build/manifest.json
             echo ""
-            echo "Checking if Welcome.tsx file exists:"
-            ls -la resources/js/pages/Welcome.tsx || echo "Welcome.tsx file not found!"
+            echo "Checking if welcome.tsx file exists:"
+            ls -la resources/js/pages/welcome.tsx || echo "welcome.tsx file not found!"
             exit 1
           fi
 
@@ -173,7 +173,7 @@ jobs:
             echo "❌ Error: manifest.json not found after build"
             exit 1
           fi
-          if ! grep -q "Welcome" public/build/manifest.json; then
+          if ! grep -q "welcome" public/build/manifest.json; then
             echo "❌ Error: Welcome component not found in manifest"
             echo "Manifest contents:"
             cat public/build/manifest.json
