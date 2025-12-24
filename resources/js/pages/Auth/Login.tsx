@@ -1,9 +1,6 @@
 import { Form, Head, Link } from '@inertiajs/react';
-import { PageProps } from '@/types';
 
-interface LoginProps extends PageProps {}
-
-export default function Login({ auth }: LoginProps) {
+export default function Login() {
     return (
         <>
             <Head title="Login" />

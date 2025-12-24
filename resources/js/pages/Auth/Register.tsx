@@ -1,9 +1,6 @@
 import { Form, Head, Link } from '@inertiajs/react';
-import { PageProps } from '@/types';
 
-interface RegisterProps extends PageProps {}
-
-export default function Register({ auth }: RegisterProps) {
+export default function Register() {
     return (
         <>
             <Head title="Register" />

@@ -6,6 +6,7 @@ use App\Models\Appointment;
 use App\Models\Bill;
 use App\Models\Medicine;
 use App\Models\Patient;
+use App\Models\Payment;
 use Carbon\Carbon;
 
 class ReportService
