@@ -170,10 +170,13 @@ jobs:
             # Extract new deployment directly to deployment path
             sudo tar -xzf /tmp/hms.tar.gz -C "$DEPLOY_PATH" --strip-components=0
             
-            # Run deployment script
+            # Fix ownership (assume www-data user, adjust if needed)
+            sudo chown -R www-data:www-data "$DEPLOY_PATH"
+            
+            # Run deployment script as www-data user
             cd "$DEPLOY_PATH"
             sudo chmod +x deploy/deploy.sh
-            sudo bash deploy/deploy.sh
+            sudo -u www-data bash deploy/deploy.sh
             
             # Cleanup old backups (keep last 3)
             sudo find "$(dirname $DEPLOY_PATH)" -maxdepth 1 -type d -name "$(basename $DEPLOY_PATH).backup.*" | sort -r | tail -n +4 | xargs -r sudo rm -rf
