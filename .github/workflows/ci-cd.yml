@@ -69,9 +69,13 @@ jobs:
           if grep -q "Welcome" public/build/manifest.json; then
             echo "✅ Welcome component found in manifest"
           else
-            echo "⚠️  Warning: Welcome component not in manifest"
+            echo "❌ Error: Welcome component not found in manifest"
             echo "Manifest contents:"
             cat public/build/manifest.json
+            echo ""
+            echo "Checking if Welcome.tsx file exists:"
+            ls -la resources/js/pages/Welcome.tsx || echo "Welcome.tsx file not found!"
+            exit 1
           fi
 
       - name: Run Database Migrations
