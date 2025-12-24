@@ -40,22 +40,26 @@ jobs:
         run: npm run build
 
       - name: Verify Deployment Secrets
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
         run: |
           set +e  # Don't exit on error, we want to show the message
           
           MISSING_SECRETS=0
           
-          if [ -z "${{ secrets.VPS_HOST }}" ] || [ "${{ secrets.VPS_HOST }}" == "" ]; then
+          if [ -z "$VPS_HOST" ] || [ "$VPS_HOST" == "" ]; then
             echo "::error::VPS_HOST secret is not configured"
             MISSING_SECRETS=1
           fi
           
-          if [ -z "${{ secrets.VPS_USER }}" ] || [ "${{ secrets.VPS_USER }}" == "" ]; then
+          if [ -z "$VPS_USER" ] || [ "$VPS_USER" == "" ]; then
             echo "::error::VPS_USER secret is not configured"
             MISSING_SECRETS=1
           fi
           
-          if [ -z "${{ secrets.VPS_SSH_KEY }}" ] || [ "${{ secrets.VPS_SSH_KEY }}" == "" ]; then
+          if [ -z "$VPS_SSH_KEY" ] || [ "$VPS_SSH_KEY" == "" ]; then
             echo "::error::VPS_SSH_KEY secret is not configured"
             MISSING_SECRETS=1
           fi
