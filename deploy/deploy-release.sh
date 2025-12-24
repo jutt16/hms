@@ -72,14 +72,33 @@ if [ ! -f "$RELEASE_PATH/composer.json" ]; then
     exit 1
 fi
 
-# Verify build files are present
+# Verify build files are present, rebuild if missing
 if [ ! -f "$RELEASE_PATH/public/build/manifest.json" ]; then
-    log_error "Build files not found in extracted release!"
-    log_error "Expected: $RELEASE_PATH/public/build/manifest.json"
-    ls -la "$RELEASE_PATH/public/" || true
-    exit 1
+    log_warn "Build files not found in extracted release!"
+    log_warn "Attempting to rebuild assets on server..."
+    
+    # Check if Node.js is available
+    if command -v node >/dev/null 2>&1 && command -v npm >/dev/null 2>&1; then
+        log_info "Node.js found, rebuilding assets..."
+        cd "$RELEASE_PATH"
+        sudo -u www-data npm ci --production 2>&1 | head -20 || log_warn "npm ci failed, trying npm install..."
+        sudo -u www-data npm run build 2>&1 | tail -20 || {
+            log_error "Failed to build assets on server"
+            log_error "Expected: $RELEASE_PATH/public/build/manifest.json"
+            ls -la "$RELEASE_PATH/public/" || true
+            exit 1
+        }
+        log_info "Assets rebuilt successfully on server"
+    else
+        log_error "Build files not found and Node.js is not available!"
+        log_error "Expected: $RELEASE_PATH/public/build/manifest.json"
+        log_error "Please ensure build files are included in deployment or Node.js is installed"
+        ls -la "$RELEASE_PATH/public/" || true
+        exit 1
+    fi
+else
+    log_info "Build files verified in release"
 fi
-log_info "Build files verified in release"
 
 # Set proper ownership
 log_info "Setting file ownership (www-data:www-data)..."

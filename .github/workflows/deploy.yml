@@ -213,14 +213,33 @@ jobs:
                 exit 1
               fi
               
-              # Verify build files are present
+              # Verify build files are present, rebuild if missing
               if [ ! -f "$RELEASE_PATH/public/build/manifest.json" ]; then
-                echo "::error::Build files not found in extracted release!"
-                echo "Expected: $RELEASE_PATH/public/build/manifest.json"
-                ls -la "$RELEASE_PATH/public/" || true
-                exit 1
+                echo "::warning::Build files not found in extracted release!"
+                echo "Attempting to rebuild assets on server..."
+                
+                # Check if Node.js is available
+                if command -v node >/dev/null 2>&1 && command -v npm >/dev/null 2>&1; then
+                  echo "Node.js found, rebuilding assets..."
+                  cd "$RELEASE_PATH"
+                  sudo -u www-data npm ci --production 2>&1 | head -20 || echo "npm ci failed, trying npm install..."
+                  sudo -u www-data npm run build 2>&1 | tail -20 || {
+                    echo "::error::Failed to build assets on server"
+                    echo "Expected: $RELEASE_PATH/public/build/manifest.json"
+                    ls -la "$RELEASE_PATH/public/" || true
+                    exit 1
+                  }
+                  echo "✅ Assets rebuilt successfully on server"
+                else
+                  echo "::error::Build files not found and Node.js is not available!"
+                  echo "Expected: $RELEASE_PATH/public/build/manifest.json"
+                  echo "Please ensure build files are included in deployment or Node.js is installed"
+                  ls -la "$RELEASE_PATH/public/" || true
+                  exit 1
+                fi
+              else
+                echo "✅ Build files verified in release"
               fi
-              echo "✅ Build files verified in release"
               
               # Set ownership and permissions
               echo "🔐 Setting ownership and permissions..."
