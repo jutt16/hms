@@ -1,5 +1,5 @@
 import { Head } from '@inertiajs/react';
-import { PageProps } from '@/types';
+import { PageProps, Appointment } from '@/types';
 
 interface DashboardProps extends PageProps {
     stats: {
@@ -24,7 +24,7 @@ interface DashboardProps extends PageProps {
             total: number;
             by_status: Record<string, number>;
             by_doctor: Record<string, number>;
-            appointments: any[];
+            appointments: Appointment[];
         };
     };
 }
