@@ -93,7 +93,7 @@ jobs:
             --exclude='storage/framework/sessions/*' \
             --exclude='storage/framework/views/*' \
             --exclude='vendor' \
-            --exclude='deploy' \
+            --exclude='deploy/hms.tar.gz' \
             .
           # Copy to root so SCP doesn't preserve deploy/ directory structure
           cp deploy/hms.tar.gz hms.tar.gz
