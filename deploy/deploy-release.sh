@@ -137,15 +137,17 @@ sudo -u www-data php artisan view:cache || log_warn "View cache failed"
 log_info "Updating current symlink atomically..."
 # Remove any existing broken symlinks, temp files, or directory
 sudo rm -f "$CURRENT_LINK.new" "$CURRENT_LINK.tmp" 2>/dev/null || true
+# Remove existing symlink if it exists (including if it points to current.new)
+if [ -L "$CURRENT_LINK" ] || [ -e "$CURRENT_LINK" ]; then
+    sudo rm -f "$CURRENT_LINK"
+fi
 # If current exists as a directory, remove it (shouldn't happen, but handle it)
 if [ -d "$CURRENT_LINK" ] && [ ! -L "$CURRENT_LINK" ]; then
     log_warn "$CURRENT_LINK exists as a directory, removing it..."
     sudo rm -rf "$CURRENT_LINK"
 fi
-# Create new symlink in temp location
-sudo ln -sfn "$RELEASE_PATH" "$CURRENT_LINK.new"
-# Atomically move it into place
-sudo mv -f "$CURRENT_LINK.new" "$CURRENT_LINK"
+# Create symlink directly (no need for temp file since we removed the old one)
+sudo ln -sfn "$RELEASE_PATH" "$CURRENT_LINK"
 
 # Verify symlink is correct
 if [ ! -L "$CURRENT_LINK" ]; then
@@ -154,31 +156,24 @@ if [ ! -L "$CURRENT_LINK" ]; then
     exit 1
 fi
 
-CURRENT_TARGET=$(readlink "$CURRENT_LINK" 2>/dev/null || echo "")
-EXPECTED_TARGET="$RELEASE_PATH"
-
-# Check if symlink points to the correct path (relative or absolute)
-if [ -z "$CURRENT_TARGET" ]; then
-    log_error "Symlink target is empty"
-    ls -la "$CURRENT_LINK" || true
-    exit 1
-fi
-
 # Resolve both paths to absolute and compare
 CURRENT_ABS=$(readlink -f "$CURRENT_LINK" 2>/dev/null || echo "")
 RELEASE_ABS=$(readlink -f "$RELEASE_PATH" 2>/dev/null || echo "")
 
-if [ -z "$CURRENT_ABS" ] || [ -z "$RELEASE_ABS" ] || [ "$CURRENT_ABS" != "$RELEASE_ABS" ]; then
-    # Also check if the symlink target matches the expected path
-    if [ "$CURRENT_TARGET" != "$EXPECTED_TARGET" ] && [ "$CURRENT_TARGET" != "$RELEASE_PATH" ]; then
-        log_error "Symlink verification failed"
-        log_error "Current symlink target: $CURRENT_TARGET"
-        log_error "Expected target: $EXPECTED_TARGET"
-        log_error "Current absolute: $CURRENT_ABS"
-        log_error "Release absolute: $RELEASE_ABS"
-        ls -la "$CURRENT_LINK" || true
-        exit 1
-    fi
+if [ -z "$CURRENT_ABS" ] || [ -z "$RELEASE_ABS" ]; then
+    log_error "Could not resolve symlink paths"
+    log_error "Current absolute: $CURRENT_ABS"
+    log_error "Release absolute: $RELEASE_ABS"
+    ls -la "$CURRENT_LINK" || true
+    exit 1
+fi
+
+if [ "$CURRENT_ABS" != "$RELEASE_ABS" ]; then
+    log_error "Symlink verification failed"
+    log_error "Current symlink points to: $CURRENT_ABS"
+    log_error "Expected to point to: $RELEASE_ABS"
+    ls -la "$CURRENT_LINK" || true
+    exit 1
 fi
 
 log_info "Symlink updated successfully: $CURRENT_LINK -> $RELEASE_PATH"
