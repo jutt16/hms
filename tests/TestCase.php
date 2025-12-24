@@ -19,13 +19,22 @@ abstract class TestCase extends BaseTestCase
                 ->andReturn('');
             Vite::shouldReceive('reactRefresh')
                 ->andReturn('');
-        } elseif (! str_contains(file_get_contents($manifestPath), 'Welcome')) {
-            // Manifest exists but doesn't have Welcome - mock Vite to prevent test failures
+            Vite::shouldReceive('preloadedAssets')
+                ->andReturn([]);
+        } elseif (! str_contains(file_get_contents($manifestPath), 'welcome')) {
+            // Manifest exists but doesn't have welcome - mock Vite to prevent test failures
             // The CI/CD build verification should catch this before tests run
             Vite::shouldReceive('__invoke')
                 ->andReturn('');
             Vite::shouldReceive('reactRefresh')
                 ->andReturn('');
+            Vite::shouldReceive('preloadedAssets')
+                ->andReturn([]);
+        } else {
+            // Even if manifest exists, we should mock preloadedAssets to avoid issues
+            // The actual Vite instance will handle asset loading in real requests
+            Vite::shouldReceive('preloadedAssets')
+                ->andReturn([]);
         }
     }
 }
