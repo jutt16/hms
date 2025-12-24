@@ -13,6 +13,14 @@ if [ -f .env ]; then
     export $(cat .env | grep -v '^#' | xargs)
 fi
 
+# Install Composer dependencies (production only)
+echo "📦 Installing Composer dependencies..."
+# Remove old vendor directory if it exists to ensure clean install
+if [ -d "vendor" ]; then
+    rm -rf vendor
+fi
+composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
+
 # Set proper permissions
 echo "🔐 Setting permissions..."
 chmod -R 775 storage bootstrap/cache
