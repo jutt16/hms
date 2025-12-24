@@ -95,6 +95,12 @@ jobs:
             --exclude='vendor' \
             --exclude='deploy' \
             .
+          # Copy to root so SCP doesn't preserve deploy/ directory structure
+          cp deploy/hms.tar.gz hms.tar.gz
+
+      - name: Cleanup local package
+        if: always()
+        run: rm -f hms.tar.gz
 
       - name: Deploy to VPS
         uses: appleboy/scp-action@v0.1.7
@@ -103,7 +109,7 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_PORT || 22 }}
-          source: "deploy/hms.tar.gz"
+          source: "hms.tar.gz"
           target: "/tmp"
           debug: true
 
@@ -115,11 +121,20 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_PORT || 22 }}
           script: |
-            if [ ! -f /tmp/hms.tar.gz ]; then
+            # Check both possible locations (root or deploy subdirectory)
+            if [ -f /tmp/hms.tar.gz ]; then
+              echo "✅ File transfer verified: $(ls -lh /tmp/hms.tar.gz)"
+            elif [ -f /tmp/deploy/hms.tar.gz ]; then
+              echo "⚠️  File found in /tmp/deploy/hms.tar.gz, moving to /tmp/hms.tar.gz"
+              sudo mv /tmp/deploy/hms.tar.gz /tmp/hms.tar.gz
+              sudo rmdir /tmp/deploy 2>/dev/null || true
+              echo "✅ File moved and verified: $(ls -lh /tmp/hms.tar.gz)"
+            else
               echo "::error::File /tmp/hms.tar.gz was not transferred successfully"
+              echo "Contents of /tmp:"
+              ls -la /tmp/ || true
               exit 1
             fi
-            echo "✅ File transfer verified: $(ls -lh /tmp/hms.tar.gz)"
 
       - name: Execute deployment script on VPS
         uses: appleboy/ssh-action@v1.0.3
@@ -133,11 +148,17 @@ jobs:
             
             DEPLOY_PATH="${{ secrets.VPS_DEPLOY_PATH || '/var/www/hms' }}"
             
-            # Verify file exists before proceeding
-            if [ ! -f /tmp/hms.tar.gz ]; then
+            # Verify file exists before proceeding (check both locations)
+            if [ ! -f /tmp/hms.tar.gz ] && [ ! -f /tmp/deploy/hms.tar.gz ]; then
               echo "::error::Deployment file /tmp/hms.tar.gz not found. SCP transfer may have failed."
               ls -la /tmp/ || true
               exit 1
+            fi
+            
+            # Move file if it's in the deploy subdirectory
+            if [ -f /tmp/deploy/hms.tar.gz ]; then
+              sudo mv /tmp/deploy/hms.tar.gz /tmp/hms.tar.gz
+              sudo rmdir /tmp/deploy 2>/dev/null || true
             fi
             
             echo "✅ Found deployment file: $(ls -lh /tmp/hms.tar.gz)"
