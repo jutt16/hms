@@ -52,14 +52,6 @@ fi
 # Load environment variables
 export $(cat .env | grep -v '^#' | xargs)
 
-# Generate APP_KEY if it's missing
-if [ -z "$APP_KEY" ] || [ "$APP_KEY" == "" ]; then
-    echo "🔑 Generating application key..."
-    php artisan key:generate --force
-    # Reload environment variables after key generation
-    export $(cat .env | grep -v '^#' | xargs)
-fi
-
 # Verify database connection is set to MySQL
 DB_CONFIGURED=true
 if [ -z "$DB_CONNECTION" ] || [ "$DB_CONNECTION" != "mysql" ]; then
@@ -88,6 +80,14 @@ if [ -d "vendor" ]; then
     rm -rf vendor
 fi
 composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
+
+# Generate APP_KEY if it's missing (after composer install so artisan works)
+if [ -z "$APP_KEY" ] || [ "$APP_KEY" == "" ]; then
+    echo "🔑 Generating application key..."
+    php artisan key:generate --force
+    # Reload environment variables after key generation
+    export $(cat .env | grep -v '^#' | xargs)
+fi
 
 # Set proper permissions
 echo "🔐 Setting permissions..."
