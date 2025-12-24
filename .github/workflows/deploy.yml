@@ -11,6 +11,7 @@ jobs:
   deploy:
     name: Deploy to VPS
     runs-on: ubuntu-latest
+    environment: HMS
     
     steps:
       - name: Checkout code
@@ -63,12 +64,12 @@ jobs:
             echo ""
             echo "❌ Required deployment secrets are not configured"
             echo ""
-            echo "Please configure the following GitHub secrets in your repository:"
+            echo "Please configure the following GitHub secrets in the 'HMS' environment:"
             echo "  - VPS_HOST: Your VPS IP address or domain"
             echo "  - VPS_USER: SSH username (usually 'root' or 'ubuntu')"
             echo "  - VPS_SSH_KEY: Private SSH key for authentication"
             echo ""
-            echo "Go to: Repository Settings → Secrets and variables → Actions → New repository secret"
+            echo "Go to: Repository Settings → Environments → HMS → Add secret"
             echo "See deploy/README.md for detailed setup instructions"
             echo ""
             echo "⚠️  Deployment will be skipped until secrets are configured."
