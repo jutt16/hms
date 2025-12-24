@@ -169,9 +169,14 @@ if [ $MIGRATION_EXIT_CODE -ne 0 ] || [ $CACHE_CLEAR_EXIT -ne 0 ]; then
     echo "  sudo -u www-data php artisan migrate --force"
     echo "  sudo -u www-data php artisan cache:clear"
     echo ""
+    echo "Note: If using symlink deployment, ensure .env is in the base directory or shared:"
+    echo "  /var/www/hms/.env (or /var/www/hms/shared/.env if using shared config)"
+    echo ""
 else
     echo "📝 Next steps:"
     echo "   - Verify the application is working correctly"
     echo "   - Check logs if needed: tail -f storage/logs/laravel.log"
+    echo ""
+    echo "📍 Deployment location: $DEPLOY_DIR"
 fi
 

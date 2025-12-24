@@ -159,27 +159,38 @@ jobs:
             
             echo "✅ Found deployment file: $(ls -lh /tmp/hms.tar.gz)"
             
-            # Create deployment directory if it doesn't exist
-            sudo mkdir -p "$DEPLOY_PATH"
+            # Setup deployment structure with releases and current symlink
+            BASE_PATH="${{ secrets.VPS_DEPLOY_PATH || '/var/www/hms' }}"
+            RELEASES_PATH="$BASE_PATH/releases"
+            CURRENT_LINK="$BASE_PATH/current"
+            RELEASE_NAME="$(date +%Y%m%d-%H%M%S)"
+            RELEASE_PATH="$RELEASES_PATH/$RELEASE_NAME"
             
-            # Backup current deployment (if it exists)
-            if [ -d "$DEPLOY_PATH" ] && [ "$(ls -A $DEPLOY_PATH)" ]; then
-              sudo cp -r "$DEPLOY_PATH" "${DEPLOY_PATH}.backup.$(date +%Y%m%d-%H%M%S)"
-            fi
+            # Create base and releases directories
+            sudo mkdir -p "$RELEASES_PATH"
             
-            # Extract new deployment directly to deployment path
-            sudo tar -xzf /tmp/hms.tar.gz -C "$DEPLOY_PATH" --strip-components=0
+            # Extract new deployment to release directory
+            echo "📦 Extracting to release: $RELEASE_NAME"
+            sudo mkdir -p "$RELEASE_PATH"
+            sudo tar -xzf /tmp/hms.tar.gz -C "$RELEASE_PATH" --strip-components=0
             
             # Fix ownership (assume www-data user, adjust if needed)
-            sudo chown -R www-data:www-data "$DEPLOY_PATH"
+            sudo chown -R www-data:www-data "$RELEASE_PATH"
             
             # Run deployment script as www-data user
-            cd "$DEPLOY_PATH"
+            cd "$RELEASE_PATH"
             sudo chmod +x deploy/deploy.sh
             sudo -u www-data bash deploy/deploy.sh
             
-            # Cleanup old backups (keep last 3)
-            sudo find "$(dirname $DEPLOY_PATH)" -maxdepth 1 -type d -name "$(basename $DEPLOY_PATH).backup.*" | sort -r | tail -n +4 | xargs -r sudo rm -rf
+            # Update current symlink atomically
+            echo "🔗 Updating current symlink..."
+            sudo ln -sfn "$RELEASE_PATH" "$CURRENT_LINK.tmp"
+            sudo mv -f "$CURRENT_LINK.tmp" "$CURRENT_LINK"
+            
+            # Cleanup old releases (keep last 5)
+            echo "🧹 Cleaning up old releases..."
+            sudo find "$RELEASES_PATH" -maxdepth 1 -type d -name "20*" | sort -r | tail -n +6 | xargs -r sudo rm -rf
+            echo "✅ Kept last 5 releases"
             
             # Cleanup
             sudo rm -f /tmp/hms.tar.gz
