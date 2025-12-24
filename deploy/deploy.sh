@@ -42,10 +42,10 @@ EOF
     echo "   Required values:"
     echo "   - APP_KEY (will be generated automatically if missing)"
     echo "   - DB_CONNECTION=mysql"
-    echo "   - DB_DATABASE=your_database_name"
-    echo "   - DB_USERNAME=your_database_user"
-    echo "   - DB_PASSWORD=your_database_password"
-    echo "   - APP_URL=your_domain_or_ip"
+    echo "   - DB_DATABASE=hms"
+    echo "   - DB_USERNAME=hms_user"
+    echo "   - DB_PASSWORD=strong_password_here"
+    echo "   - APP_URL=hms.mtai.live"
     echo ""
 fi
 
@@ -115,9 +115,9 @@ else
     echo "  - DB_CONNECTION=mysql"
     echo "  - DB_HOST=127.0.0.1 (or your MySQL host)"
     echo "  - DB_PORT=3306"
-    echo "  - DB_DATABASE=your_actual_database_name"
-    echo "  - DB_USERNAME=your_database_user"
-    echo "  - DB_PASSWORD=your_database_password"
+    echo "  - DB_DATABASE=hms"
+    echo "  - DB_USERNAME=hms_user"
+    echo "  - DB_PASSWORD=strong_password_here"
     echo ""
     echo "⚠️  Continuing with other deployment steps..."
 fi
