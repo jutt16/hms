@@ -105,6 +105,21 @@ jobs:
           port: ${{ secrets.VPS_PORT || 22 }}
           source: "deploy/hms.tar.gz"
           target: "/tmp"
+          debug: true
+
+      - name: Verify file transfer
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          script: |
+            if [ ! -f /tmp/hms.tar.gz ]; then
+              echo "::error::File /tmp/hms.tar.gz was not transferred successfully"
+              exit 1
+            fi
+            echo "✅ File transfer verified: $(ls -lh /tmp/hms.tar.gz)"
 
       - name: Execute deployment script on VPS
         uses: appleboy/ssh-action@v1.0.3
@@ -113,10 +128,19 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_PORT || 22 }}
-          script: |
+            script: |
             set -e
             
             DEPLOY_PATH="${{ secrets.VPS_DEPLOY_PATH || '/var/www/hms' }}"
+            
+            # Verify file exists before proceeding
+            if [ ! -f /tmp/hms.tar.gz ]; then
+              echo "::error::Deployment file /tmp/hms.tar.gz not found. SCP transfer may have failed."
+              ls -la /tmp/ || true
+              exit 1
+            fi
+            
+            echo "✅ Found deployment file: $(ls -lh /tmp/hms.tar.gz)"
             
             # Create deployment directory if it doesn't exist
             sudo mkdir -p "$DEPLOY_PATH"
