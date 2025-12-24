@@ -51,7 +51,28 @@ jobs:
         run: npm ci
 
       - name: Build Assets
-        run: npm run build
+        run: |
+          npm run build
+          if [ $? -ne 0 ]; then
+            echo "❌ Build failed"
+            exit 1
+          fi
+
+      - name: Verify Build Output
+        run: |
+          if [ ! -f "public/build/manifest.json" ]; then
+            echo "❌ Error: manifest.json not found after build"
+            ls -la public/build/ || echo "public/build directory does not exist"
+            exit 1
+          fi
+          echo "✅ Build manifest found"
+          if grep -q "Welcome" public/build/manifest.json; then
+            echo "✅ Welcome component found in manifest"
+          else
+            echo "⚠️  Warning: Welcome component not in manifest"
+            echo "Manifest contents:"
+            cat public/build/manifest.json
+          fi
 
       - name: Run Database Migrations
         env:
