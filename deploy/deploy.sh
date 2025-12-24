@@ -18,12 +18,13 @@ echo "📦 Installing Composer dependencies..."
 composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
 
 # Install/Update NPM dependencies (if needed)
+# Note: Install all dependencies (including dev) as they're needed for building assets
 if [ -f package.json ]; then
     echo "📦 Installing NPM dependencies..."
-    npm ci --production
+    npm ci --prefer-offline --no-audit
 fi
 
-# Build frontend assets
+# Build frontend assets (assets are pre-built in CI/CD, but rebuild here as fallback)
 if [ -f package.json ]; then
     echo "🏗️  Building frontend assets..."
     npm run build
