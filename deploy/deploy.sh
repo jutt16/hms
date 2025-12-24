@@ -124,12 +124,54 @@ fi
 
 # Clear and cache configuration
 echo "⚙️  Optimizing application..."
+set +e  # Temporarily disable exit on error for cache operations
 php artisan config:cache
+CONFIG_CACHE_EXIT=$?
 php artisan route:cache
+ROUTE_CACHE_EXIT=$?
 php artisan view:cache
+VIEW_CACHE_EXIT=$?
 
-# Clear application cache
+# Clear application cache (may fail if using database cache and DB is not accessible)
 php artisan cache:clear
+CACHE_CLEAR_EXIT=$?
+set -e  # Re-enable exit on error
 
+if [ $CONFIG_CACHE_EXIT -ne 0 ] || [ $ROUTE_CACHE_EXIT -ne 0 ] || [ $VIEW_CACHE_EXIT -ne 0 ]; then
+    echo "⚠️  Warning: Some cache operations failed, but continuing..."
+fi
+
+if [ $CACHE_CLEAR_EXIT -ne 0 ]; then
+    echo "⚠️  Warning: Cache clear failed (this is expected if using database cache and DB is not accessible)"
+    echo "   Cache will be cleared automatically once database is properly configured"
+fi
+
+echo ""
 echo "✅ Deployment completed successfully!"
+echo ""
+if [ $MIGRATION_EXIT_CODE -ne 0 ] || [ $CACHE_CLEAR_EXIT -ne 0 ]; then
+    echo "⚠️  Database connection issues detected!"
+    echo ""
+    echo "If you're seeing 'Access denied' error (1698), the MySQL user may be using auth_socket."
+    echo "This is common on Ubuntu/Debian MySQL installations."
+    echo ""
+    echo "To fix MySQL authentication, run on your VPS:"
+    echo ""
+    echo "  sudo mysql -u root"
+    echo "  ALTER USER 'hms_user'@'localhost' IDENTIFIED WITH mysql_native_password BY 'strong_password_here';"
+    echo "  FLUSH PRIVILEGES;"
+    echo "  EXIT;"
+    echo ""
+    echo "Replace 'strong_password_here' with your actual password from .env file."
+    echo ""
+    echo "Then run migrations manually:"
+    echo "  cd $DEPLOY_DIR"
+    echo "  sudo -u www-data php artisan migrate --force"
+    echo "  sudo -u www-data php artisan cache:clear"
+    echo ""
+else
+    echo "📝 Next steps:"
+    echo "   - Verify the application is working correctly"
+    echo "   - Check logs if needed: tail -f storage/logs/laravel.log"
+fi
 
