@@ -63,4 +63,9 @@ class Bill extends Model
     {
         return $this->hasMany(StockMovement::class);
     }
+
+    public function insuranceClaims(): HasMany
+    {
+        return $this->hasMany(InsuranceClaim::class);
+    }
 }

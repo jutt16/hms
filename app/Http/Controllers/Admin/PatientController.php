@@ -7,12 +7,18 @@ use App\Http\Requests\StorePatientRequest;
 use App\Http\Requests\UpdatePatientRequest;
 use App\Models\Patient;
 use App\Models\User;
+use App\Services\QrCodeService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class PatientController extends Controller
 {
+    public function __construct(
+        private QrCodeService $qrCodeService
+    ) {}
+
     public function index(): Response
     {
         $patients = Patient::with('user')
@@ -45,7 +51,13 @@ class PatientController extends Controller
 
         $patientId = 'PAT-'.str_pad(Patient::count() + 1, 6, '0', STR_PAD_LEFT);
 
-        Patient::create([
+        // Handle photo upload
+        $photoPath = null;
+        if ($request->hasFile('photo')) {
+            $photoPath = $request->file('photo')->store('patients/photos', 'public');
+        }
+
+        $patient = Patient::create([
             'user_id' => $user->id,
             'patient_id' => $patientId,
             'blood_group' => $request->blood_group,
@@ -56,7 +68,12 @@ class PatientController extends Controller
             'emergency_contact_relation' => $request->emergency_contact_relation,
             'insurance_provider' => $request->insurance_provider,
             'insurance_policy_number' => $request->insurance_policy_number,
+            'photo' => $photoPath,
         ]);
+
+        // Generate QR code
+        $qrCodePath = $this->qrCodeService->generateForPatient($patient->patient_id);
+        $patient->update(['qr_code' => $qrCodePath]);
 
         return redirect()->route('admin.patients.index')
             ->with('success', 'Patient created successfully.');
@@ -88,7 +105,7 @@ class PatientController extends Controller
             $patient->user->update(['password' => $request->password]);
         }
 
-        $patient->update($request->only([
+        $updateData = $request->only([
             'blood_group',
             'allergies',
             'medical_history',
@@ -97,7 +114,25 @@ class PatientController extends Controller
             'emergency_contact_relation',
             'insurance_provider',
             'insurance_policy_number',
-        ]));
+        ]);
+
+        // Handle photo upload
+        if ($request->hasFile('photo')) {
+            // Delete old photo if exists
+            if ($patient->photo) {
+                Storage::disk('public')->delete($patient->photo);
+            }
+            $photoPath = $request->file('photo')->store('patients/photos', 'public');
+            $updateData['photo'] = $photoPath;
+        }
+
+        $patient->update($updateData);
+
+        // Regenerate QR code if patient_id changed
+        if (! $patient->qr_code) {
+            $qrCodePath = $this->qrCodeService->generateForPatient($patient->patient_id);
+            $patient->update(['qr_code' => $qrCodePath]);
+        }
 
         return redirect()->route('admin.patients.index')
             ->with('success', 'Patient updated successfully.');
@@ -105,10 +140,29 @@ class PatientController extends Controller
 
     public function destroy(Patient $patient): RedirectResponse
     {
+        // Delete photo if exists
+        if ($patient->photo) {
+            Storage::disk('public')->delete($patient->photo);
+        }
+
+        // Delete QR code if exists
+        if ($patient->qr_code) {
+            Storage::disk('public')->delete($patient->qr_code);
+        }
+
         $patient->user->delete();
         $patient->delete();
 
         return redirect()->route('admin.patients.index')
             ->with('success', 'Patient deleted successfully.');
+    }
+
+    public function downloadQrCode(Patient $patient)
+    {
+        if (! $patient->qr_code) {
+            abort(404, 'QR code not found');
+        }
+
+        return Storage::disk('public')->download($patient->qr_code);
     }
 }

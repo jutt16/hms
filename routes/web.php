@@ -3,8 +3,15 @@
 use App\Http\Controllers\Admin\ActivityLogController as AdminActivityLogController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\DoctorController as AdminDoctorController;
+use App\Http\Controllers\Admin\Insurance\InsuranceClaimController as AdminInsuranceClaimController;
+use App\Http\Controllers\Admin\Insurance\InsuranceProviderController as AdminInsuranceProviderController;
+use App\Http\Controllers\Admin\Ipd\AdmissionController as AdminIpdAdmissionController;
+use App\Http\Controllers\Admin\Ipd\BedController as AdminIpdBedController;
+use App\Http\Controllers\Admin\Ipd\WardController as AdminIpdWardController;
 use App\Http\Controllers\Admin\PatientController as AdminPatientController;
+use App\Http\Controllers\Admin\PatientReportController as AdminPatientReportController;
 use App\Http\Controllers\Admin\ReportController as AdminReportController;
+use App\Http\Controllers\Admin\Staff\StaffController as AdminStaffStaffController;
 use App\Http\Controllers\Admin\SystemSettingController as AdminSystemSettingController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Auth\LoginController;
@@ -13,6 +20,7 @@ use App\Http\Controllers\Billing\BillController as BillingBillController;
 use App\Http\Controllers\Billing\PaymentController as BillingPaymentController;
 use App\Http\Controllers\Doctor\AppointmentController as DoctorAppointmentController;
 use App\Http\Controllers\Doctor\DashboardController as DoctorDashboardController;
+use App\Http\Controllers\Doctor\DiagnosisTemplateController as DoctorDiagnosisTemplateController;
 use App\Http\Controllers\Doctor\MedicalRecordController as DoctorMedicalRecordController;
 use App\Http\Controllers\Doctor\PrescriptionController as DoctorPrescriptionController;
 use App\Http\Controllers\Lab\LabResultController as LabLabResultController;
@@ -79,6 +87,28 @@ Route::middleware(['auth', 'role:admin|super-admin'])->prefix('admin')->name('ad
     Route::get('/reports/patients', [AdminReportController::class, 'patients'])->name('reports.patients');
     Route::get('/reports/pharmacy', [AdminReportController::class, 'pharmacy'])->name('reports.pharmacy');
     Route::get('/reports/export', [AdminReportController::class, 'export'])->name('reports.export');
+
+    // IPD/Ward Management
+    Route::prefix('ipd')->name('ipd.')->group(function () {
+        Route::resource('admissions', AdminIpdAdmissionController::class);
+        Route::post('/admissions/{admission}/discharge', [AdminIpdAdmissionController::class, 'discharge'])->name('admissions.discharge');
+        Route::resource('wards', AdminIpdWardController::class);
+        Route::resource('beds', AdminIpdBedController::class);
+    });
+
+    // Staff & HR Management
+    Route::prefix('staff')->name('staff.')->group(function () {
+        Route::resource('staff', AdminStaffStaffController::class);
+    });
+
+    // Insurance Management
+    Route::prefix('insurance')->name('insurance.')->group(function () {
+        Route::resource('providers', AdminInsuranceProviderController::class);
+        Route::resource('claims', AdminInsuranceClaimController::class);
+    });
+
+    // Patient Reports
+    Route::resource('patient-reports', AdminPatientReportController::class);
 });
 
 // Doctor Routes
@@ -103,6 +133,9 @@ Route::middleware(['auth', 'role:doctor'])->prefix('doctor')->name('doctor.')->g
     Route::get('/medical-records/{medicalRecord}', [DoctorMedicalRecordController::class, 'show'])->name('medical-records.show');
     Route::get('/medical-records/{medicalRecord}/edit', [DoctorMedicalRecordController::class, 'edit'])->name('medical-records.edit');
     Route::put('/medical-records/{medicalRecord}', [DoctorMedicalRecordController::class, 'update'])->name('medical-records.update');
+
+    // Diagnosis Templates
+    Route::resource('diagnosis-templates', DoctorDiagnosisTemplateController::class);
 });
 
 // Patient Routes
@@ -168,3 +201,10 @@ Route::middleware(['auth'])->prefix('billing')->name('billing.')->group(function
     Route::post('/payments', [BillingPaymentController::class, 'store'])->name('payments.store');
     Route::get('/payments/{payment}', [BillingPaymentController::class, 'show'])->name('payments.show');
 });
+
+// Patient QR Code Route
+Route::get('/patient/{id}/qr', function (string $id) {
+    $patient = \App\Models\Patient::where('patient_id', $id)->firstOrFail();
+
+    return Inertia::render('Patient/QrCode', ['patient' => $patient]);
+})->name('patient.qr');

@@ -54,4 +54,9 @@ class Medicine extends Model
     {
         return $this->hasMany(BillItem::class);
     }
+
+    public function medicationCharts(): HasMany
+    {
+        return $this->hasMany(MedicationChart::class);
+    }
 }

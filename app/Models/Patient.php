@@ -23,6 +23,8 @@ class Patient extends Model
         'emergency_contact_relation',
         'insurance_provider',
         'insurance_policy_number',
+        'photo',
+        'qr_code',
     ];
 
     public function user(): BelongsTo
@@ -53,5 +55,15 @@ class Patient extends Model
     public function bills(): HasMany
     {
         return $this->hasMany(Bill::class);
+    }
+
+    public function reports(): HasMany
+    {
+        return $this->hasMany(PatientReport::class);
+    }
+
+    public function admissions(): HasMany
+    {
+        return $this->hasMany(Admission::class);
     }
 }

@@ -29,6 +29,9 @@ class User extends Authenticatable
         'gender',
         'avatar',
         'is_active',
+        'two_factor_enabled',
+        'two_factor_secret',
+        'two_factor_recovery_codes',
     ];
 
     /**
@@ -53,6 +56,8 @@ class User extends Authenticatable
             'password' => 'hashed',
             'date_of_birth' => 'date',
             'is_active' => 'boolean',
+            'two_factor_enabled' => 'boolean',
+            'two_factor_recovery_codes' => 'array',
         ];
     }
 
@@ -64,5 +69,10 @@ class User extends Authenticatable
     public function doctor(): HasOne
     {
         return $this->hasOne(Doctor::class);
+    }
+
+    public function staff(): HasOne
+    {
+        return $this->hasOne(Staff::class);
     }
 }

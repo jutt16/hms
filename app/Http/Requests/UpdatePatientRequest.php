@@ -41,6 +41,7 @@ class UpdatePatientRequest extends FormRequest
             'emergency_contact_relation' => ['nullable', 'string', 'max:100'],
             'insurance_provider' => ['nullable', 'string', 'max:255'],
             'insurance_policy_number' => ['nullable', 'string', 'max:255'],
+            'photo' => ['nullable', 'image', 'max:2048'], // 2MB max
         ];
     }
 }

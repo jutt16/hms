@@ -61,4 +61,14 @@ class Doctor extends Model
     {
         return $this->hasMany(LabResult::class);
     }
+
+    public function admissions(): HasMany
+    {
+        return $this->hasMany(Admission::class);
+    }
+
+    public function diagnosisTemplates(): HasMany
+    {
+        return $this->hasMany(DiagnosisTemplate::class);
+    }
 }

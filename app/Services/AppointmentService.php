@@ -15,8 +15,12 @@ class AppointmentService
     {
         $appointmentNumber = 'APT-'.strtoupper(Str::random(8));
 
+        // Generate token number based on doctor and date
+        $tokenNumber = $this->generateTokenNumber($data['doctor_id'], $data['appointment_date']);
+
         $appointment = Appointment::create([
             'appointment_number' => $appointmentNumber,
+            'token_number' => $tokenNumber,
             'patient_id' => $data['patient_id'],
             'doctor_id' => $data['doctor_id'],
             'appointment_date' => $data['appointment_date'],
@@ -29,6 +33,17 @@ class AppointmentService
         $this->notificationService->sendAppointmentConfirmation($appointment);
 
         return $appointment;
+    }
+
+    protected function generateTokenNumber(int $doctorId, string $appointmentDate): string
+    {
+        $date = \Carbon\Carbon::parse($appointmentDate)->format('Y-m-d');
+
+        $count = Appointment::where('doctor_id', $doctorId)
+            ->whereDate('appointment_date', $date)
+            ->count();
+
+        return str_pad((string) ($count + 1), 3, '0', STR_PAD_LEFT);
     }
 
     public function updateAppointmentStatus(Appointment $appointment, string $status): Appointment
