@@ -1,6 +1,7 @@
 import { Head, Link, usePage } from '@inertiajs/react';
 import { PageProps } from '@/types';
 import { Form } from '@inertiajs/react';
+import AdminNavigation from './AdminNavigation';
 
 interface AuthenticatedLayoutProps {
     children: React.ReactNode;
@@ -28,6 +29,12 @@ export default function AuthenticatedLayout({ children, title, header }: Authent
             return '/patient/dashboard';
         }
         return '/';
+    };
+
+    const isAdmin = () => {
+        if (!user) return false;
+        const roles = (user as { roles?: string[] }).roles || [];
+        return roles.includes('super-admin') || roles.includes('admin');
     };
 
     return (
@@ -87,19 +94,27 @@ export default function AuthenticatedLayout({ children, title, header }: Authent
                     </div>
                 </nav>
 
-                {/* Page Header */}
-                {header && (
-                    <header className="bg-white dark:bg-gray-800 shadow">
-                        <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-                            {header}
-                        </div>
-                    </header>
-                )}
+                <div className="flex">
+                    {/* Sidebar Navigation for Admin */}
+                    {isAdmin() && <AdminNavigation />}
 
-                {/* Main Content */}
-                <main className="py-6">
-                    {children}
-                </main>
+                    {/* Main Content Area */}
+                    <div className="flex-1">
+                        {/* Page Header */}
+                        {header && (
+                            <header className="bg-white dark:bg-gray-800 shadow">
+                                <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+                                    {header}
+                                </div>
+                            </header>
+                        )}
+
+                        {/* Main Content */}
+                        <main className="py-6">
+                            {children}
+                        </main>
+                    </div>
+                </div>
             </div>
         </>
     );

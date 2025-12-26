@@ -22,6 +22,7 @@ export interface User {
 
 export interface PageProps {
     auth: Auth;
+    url?: string;
     [key: string]: unknown;
 }
 

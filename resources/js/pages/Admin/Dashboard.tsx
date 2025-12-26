@@ -126,7 +126,7 @@ export default function Dashboard({ stats }: DashboardProps) {
                             </div>
                         </div>
                     </div>
-                </div>
+            </div>
         </AuthenticatedLayout>
     );
 }

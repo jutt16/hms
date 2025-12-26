@@ -10,9 +10,10 @@ interface DashboardProps extends PageProps {
     };
     todayAppointments: Appointment[];
     upcomingAppointments: Appointment[];
+    error?: string;
 }
 
-export default function Dashboard({ stats, todayAppointments, upcomingAppointments }: DashboardProps) {
+export default function Dashboard({ stats, todayAppointments, upcomingAppointments, error }: DashboardProps) {
     return (
         <AuthenticatedLayout title="Doctor Dashboard">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
