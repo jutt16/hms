@@ -28,15 +28,15 @@ class StaffController extends Controller
 
         $staff = $query->latest()->paginate(15);
 
-        return Inertia::render('Admin/Staff/Index', [
+        return Inertia::render('Admin/Staff/Staff/Index', [
             'staff' => $staff,
-            'filters' => $request->only(['department', 'is_active']),
+            'filters' => $request->only(['search']),
         ]);
     }
 
     public function create(): Response
     {
-        return Inertia::render('Admin/Staff/Create');
+        return Inertia::render('Admin/Staff/Staff/Create');
     }
 
     public function store(StoreStaffRequest $request): RedirectResponse
@@ -87,7 +87,7 @@ class StaffController extends Controller
     {
         $staff->load(['user', 'attendances.shift', 'payrolls', 'leaves']);
 
-        return Inertia::render('Admin/Staff/Show', [
+        return Inertia::render('Admin/Staff/Staff/Show', [
             'staff' => $staff,
         ]);
     }
@@ -96,7 +96,7 @@ class StaffController extends Controller
     {
         $staff->load('user');
 
-        return Inertia::render('Admin/Staff/Edit', [
+        return Inertia::render('Admin/Staff/Staff/Edit', [
             'staff' => $staff,
         ]);
     }
