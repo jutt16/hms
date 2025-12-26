@@ -16,12 +16,23 @@ interface InsuranceProvider {
     name: string;
 }
 
+interface Bill {
+    id: number;
+    bill_number: string;
+    total_amount: number;
+    balance: number;
+    status: string;
+    patient: Patient;
+}
+
 interface ClaimsCreateProps extends PageProps {
     patients: Patient[];
     providers: InsuranceProvider[];
+    bills: Bill[];
+    selectedBill: Bill | null;
 }
 
-export default function Create({ patients, providers }: ClaimsCreateProps) {
+export default function Create({ patients, providers, bills, selectedBill }: ClaimsCreateProps) {
     return (
         <AuthenticatedLayout title="Create Insurance Claim">
             <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -46,6 +57,29 @@ export default function Create({ patients, providers }: ClaimsCreateProps) {
                             {({ errors, processing }) => (
                                 <>
                                     <div>
+                                        <label htmlFor="bill_id" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                            Bill <span className="text-red-500">*</span>
+                                        </label>
+                                        <select
+                                            name="bill_id"
+                                            id="bill_id"
+                                            required
+                                            defaultValue={selectedBill?.id || ''}
+                                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm"
+                                        >
+                                            <option value="">Select Bill</option>
+                                            {bills.map((bill) => (
+                                                <option key={bill.id} value={bill.id}>
+                                                    {bill.bill_number} - {bill.patient.user.name} (${bill.balance.toLocaleString()})
+                                                </option>
+                                            ))}
+                                        </select>
+                                        {errors.bill_id && (
+                                            <p className="mt-2 text-sm text-red-600 dark:text-red-400">{errors.bill_id}</p>
+                                        )}
+                                    </div>
+
+                                    <div>
                                         <label htmlFor="patient_id" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                                             Patient <span className="text-red-500">*</span>
                                         </label>
@@ -53,6 +87,7 @@ export default function Create({ patients, providers }: ClaimsCreateProps) {
                                             name="patient_id"
                                             id="patient_id"
                                             required
+                                            defaultValue={selectedBill?.patient.id || ''}
                                             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm"
                                         >
                                             <option value="">Select Patient</option>
@@ -68,12 +103,12 @@ export default function Create({ patients, providers }: ClaimsCreateProps) {
                                     </div>
 
                                     <div>
-                                        <label htmlFor="provider_id" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                        <label htmlFor="insurance_provider_id" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                                             Insurance Provider <span className="text-red-500">*</span>
                                         </label>
                                         <select
-                                            name="provider_id"
-                                            id="provider_id"
+                                            name="insurance_provider_id"
+                                            id="insurance_provider_id"
                                             required
                                             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm"
                                         >
@@ -84,60 +119,25 @@ export default function Create({ patients, providers }: ClaimsCreateProps) {
                                                 </option>
                                             ))}
                                         </select>
-                                        {errors.provider_id && (
-                                            <p className="mt-2 text-sm text-red-600 dark:text-red-400">{errors.provider_id}</p>
+                                        {errors.insurance_provider_id && (
+                                            <p className="mt-2 text-sm text-red-600 dark:text-red-400">{errors.insurance_provider_id}</p>
                                         )}
                                     </div>
 
                                     <div>
-                                        <label htmlFor="claim_date" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                            Claim Date <span className="text-red-500">*</span>
+                                        <label htmlFor="policy_number" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                            Policy Number <span className="text-red-500">*</span>
                                         </label>
                                         <input
-                                            type="date"
-                                            name="claim_date"
-                                            id="claim_date"
+                                            type="text"
+                                            name="policy_number"
+                                            id="policy_number"
                                             required
-                                            defaultValue={new Date().toISOString().split('T')[0]}
                                             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm"
+                                            placeholder="Enter insurance policy number"
                                         />
-                                        {errors.claim_date && (
-                                            <p className="mt-2 text-sm text-red-600 dark:text-red-400">{errors.claim_date}</p>
-                                        )}
-                                    </div>
-
-                                    <div>
-                                        <label htmlFor="claim_amount" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                            Claim Amount <span className="text-red-500">*</span>
-                                        </label>
-                                        <input
-                                            type="number"
-                                            name="claim_amount"
-                                            id="claim_amount"
-                                            required
-                                            step="0.01"
-                                            min="0"
-                                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm"
-                                        />
-                                        {errors.claim_amount && (
-                                            <p className="mt-2 text-sm text-red-600 dark:text-red-400">{errors.claim_amount}</p>
-                                        )}
-                                    </div>
-
-                                    <div>
-                                        <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                            Description <span className="text-red-500">*</span>
-                                        </label>
-                                        <textarea
-                                            name="description"
-                                            id="description"
-                                            required
-                                            rows={4}
-                                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm"
-                                            placeholder="Enter claim description..."
-                                        />
-                                        {errors.description && (
-                                            <p className="mt-2 text-sm text-red-600 dark:text-red-400">{errors.description}</p>
+                                        {errors.policy_number && (
+                                            <p className="mt-2 text-sm text-red-600 dark:text-red-400">{errors.policy_number}</p>
                                         )}
                                     </div>
 

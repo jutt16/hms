@@ -13,9 +13,9 @@ interface InsuranceClaim {
     claim_date: string;
     claim_amount: number;
     approved_amount: number | null;
-    description: string;
+    policy_number: string;
     status: string;
-    provider_id: number;
+    insurance_provider_id: number;
 }
 
 interface ClaimsEditProps extends PageProps {
@@ -48,14 +48,14 @@ export default function Edit({ claim, providers }: ClaimsEditProps) {
                             {({ errors, processing }) => (
                                 <>
                                     <div>
-                                        <label htmlFor="provider_id" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                        <label htmlFor="insurance_provider_id" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                                             Insurance Provider <span className="text-red-500">*</span>
                                         </label>
                                         <select
-                                            name="provider_id"
-                                            id="provider_id"
+                                            name="insurance_provider_id"
+                                            id="insurance_provider_id"
                                             required
-                                            defaultValue={claim.provider_id}
+                                            defaultValue={claim.insurance_provider_id}
                                             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm"
                                         >
                                             {providers.map((provider) => (
@@ -64,65 +64,26 @@ export default function Edit({ claim, providers }: ClaimsEditProps) {
                                                 </option>
                                             ))}
                                         </select>
-                                        {errors.provider_id && (
-                                            <p className="mt-2 text-sm text-red-600 dark:text-red-400">{errors.provider_id}</p>
+                                        {errors.insurance_provider_id && (
+                                            <p className="mt-2 text-sm text-red-600 dark:text-red-400">{errors.insurance_provider_id}</p>
                                         )}
                                     </div>
 
                                     <div>
-                                        <label htmlFor="claim_date" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                            Claim Date <span className="text-red-500">*</span>
+                                        <label htmlFor="policy_number" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                            Policy Number <span className="text-red-500">*</span>
                                         </label>
                                         <input
-                                            type="date"
-                                            name="claim_date"
-                                            id="claim_date"
+                                            type="text"
+                                            name="policy_number"
+                                            id="policy_number"
                                             required
-                                            defaultValue={new Date(claim.claim_date).toISOString().split('T')[0]}
+                                            defaultValue={claim.policy_number}
                                             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm"
                                         />
-                                        {errors.claim_date && (
-                                            <p className="mt-2 text-sm text-red-600 dark:text-red-400">{errors.claim_date}</p>
+                                        {errors.policy_number && (
+                                            <p className="mt-2 text-sm text-red-600 dark:text-red-400">{errors.policy_number}</p>
                                         )}
-                                    </div>
-
-                                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                                        <div>
-                                            <label htmlFor="claim_amount" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                                Claim Amount <span className="text-red-500">*</span>
-                                            </label>
-                                            <input
-                                                type="number"
-                                                name="claim_amount"
-                                                id="claim_amount"
-                                                required
-                                                step="0.01"
-                                                min="0"
-                                                defaultValue={claim.claim_amount}
-                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm"
-                                            />
-                                            {errors.claim_amount && (
-                                                <p className="mt-2 text-sm text-red-600 dark:text-red-400">{errors.claim_amount}</p>
-                                            )}
-                                        </div>
-
-                                        <div>
-                                            <label htmlFor="approved_amount" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                                Approved Amount
-                                            </label>
-                                            <input
-                                                type="number"
-                                                name="approved_amount"
-                                                id="approved_amount"
-                                                step="0.01"
-                                                min="0"
-                                                defaultValue={claim.approved_amount || ''}
-                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm"
-                                            />
-                                            {errors.approved_amount && (
-                                                <p className="mt-2 text-sm text-red-600 dark:text-red-400">{errors.approved_amount}</p>
-                                            )}
-                                        </div>
                                     </div>
 
                                     <div>
@@ -144,22 +105,6 @@ export default function Edit({ claim, providers }: ClaimsEditProps) {
                                         )}
                                     </div>
 
-                                    <div>
-                                        <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                            Description <span className="text-red-500">*</span>
-                                        </label>
-                                        <textarea
-                                            name="description"
-                                            id="description"
-                                            required
-                                            rows={4}
-                                            defaultValue={claim.description}
-                                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm"
-                                        />
-                                        {errors.description && (
-                                            <p className="mt-2 text-sm text-red-600 dark:text-red-400">{errors.description}</p>
-                                        )}
-                                    </div>
 
                                     <div className="flex justify-end gap-4">
                                         <Link
