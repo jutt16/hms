@@ -18,7 +18,8 @@ return new class extends Migration
         Schema::create('attendances', function (Blueprint $table) {
             $table->id();
             $table->foreignId('staff_id')->constrained()->onDelete('cascade');
-            $table->foreignId('shift_id')->nullable()->constrained()->onDelete('set null');
+            // shift_id column created without foreign key constraint (shifts table created later)
+            $table->unsignedBigInteger('shift_id')->nullable();
             $table->date('attendance_date');
             $table->time('check_in_time')->nullable();
             $table->time('check_out_time')->nullable();
@@ -29,6 +30,13 @@ return new class extends Migration
 
             $table->unique(['staff_id', 'attendance_date']);
         });
+
+        // Add foreign key constraint to shifts table if it exists
+        if (Schema::hasTable('shifts')) {
+            Schema::table('attendances', function (Blueprint $table) {
+                $table->foreign('shift_id')->references('id')->on('shifts')->onDelete('set null');
+            });
+        }
     }
 
     /**
