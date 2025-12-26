@@ -24,19 +24,22 @@ class LoginController extends Controller
 
         $user = Auth::user();
 
+        // Refresh user roles to ensure they're loaded
+        $user->load('roles');
+
         if ($user->hasRole('super-admin') || $user->hasRole('admin')) {
-            return redirect()->intended(route('admin.dashboard'));
+            return redirect()->route('admin.dashboard');
         }
 
         if ($user->hasRole('doctor')) {
-            return redirect()->intended(route('doctor.dashboard'));
+            return redirect()->route('doctor.dashboard');
         }
 
         if ($user->hasRole('patient')) {
-            return redirect()->intended(route('patient.dashboard'));
+            return redirect()->route('patient.dashboard');
         }
 
-        return redirect()->intended(route('home'));
+        return redirect()->route('home');
     }
 
     public function destroy(): RedirectResponse

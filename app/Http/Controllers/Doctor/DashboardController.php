@@ -21,7 +21,17 @@ class DashboardController extends Controller
         $doctor = $user->doctor;
 
         if (! $doctor) {
-            abort(403, 'Doctor profile not found.');
+            return Inertia::render('Doctor/Dashboard', [
+                'error' => 'Doctor profile not found. Please contact administrator to set up your doctor profile.',
+                'stats' => [
+                    'today_appointments' => 0,
+                    'upcoming_appointments' => 0,
+                    'completed_today' => 0,
+                    'pending_appointments' => 0,
+                ],
+                'todayAppointments' => [],
+                'upcomingAppointments' => [],
+            ]);
         }
 
         $todayAppointments = Appointment::where('doctor_id', $doctor->id)

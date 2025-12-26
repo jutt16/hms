@@ -36,8 +36,18 @@ class LoginRequest extends FormRequest
      */
     public function authenticate(): void
     {
-        if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
+        $credentials = $this->only('email', 'password');
+        $remember = $this->boolean('remember');
+
+        if (! Auth::attempt($credentials, $remember)) {
             throw new AuthenticationException(__('auth.failed'));
+        }
+
+        $user = Auth::user();
+
+        if (! $user->is_active) {
+            Auth::logout();
+            throw new AuthenticationException('Your account has been deactivated. Please contact administrator.');
         }
     }
 }
