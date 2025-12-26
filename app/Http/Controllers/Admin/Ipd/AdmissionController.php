@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Admin\Ipd;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\Ipd\StoreAdmissionRequest;
+use App\Http\Requests\Admin\Ipd\UpdateAdmissionRequest;
 use App\Models\Admission;
 use App\Models\Bed;
 use App\Models\Doctor;
@@ -54,20 +56,9 @@ class AdmissionController extends Controller
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(StoreAdmissionRequest $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'patient_id' => ['required', 'exists:patients,id'],
-            'doctor_id' => ['required', 'exists:doctors,id'],
-            'ward_id' => ['required', 'exists:wards,id'],
-            'bed_id' => ['required', 'exists:beds,id'],
-            'admission_date' => ['required', 'date'],
-            'admission_reason' => ['required', 'string'],
-            'diagnosis' => ['nullable', 'string'],
-            'notes' => ['nullable', 'string'],
-        ]);
-
-        $this->ipdService->admitPatient($validated, auth()->id());
+        $this->ipdService->admitPatient($request->validated(), auth()->id());
 
         return redirect()->route('admin.ipd.admissions.index')
             ->with('success', 'Patient admitted successfully.');
@@ -108,17 +99,9 @@ class AdmissionController extends Controller
         ]);
     }
 
-    public function update(Request $request, Admission $admission): RedirectResponse
+    public function update(UpdateAdmissionRequest $request, Admission $admission): RedirectResponse
     {
-        $validated = $request->validate([
-            'ward_id' => ['sometimes', 'required', 'exists:wards,id'],
-            'bed_id' => ['sometimes', 'required', 'exists:beds,id'],
-            'admission_reason' => ['sometimes', 'required', 'string'],
-            'diagnosis' => ['nullable', 'string'],
-            'notes' => ['nullable', 'string'],
-        ]);
-
-        $admission->update($validated);
+        $admission->update($request->validated());
 
         return redirect()->route('admin.ipd.admissions.show', $admission)
             ->with('success', 'Admission updated successfully.');

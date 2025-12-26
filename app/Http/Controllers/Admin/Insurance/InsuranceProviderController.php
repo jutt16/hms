@@ -3,63 +3,74 @@
 namespace App\Http\Controllers\Admin\Insurance;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use App\Http\Requests\Admin\Insurance\StoreInsuranceProviderRequest;
+use App\Http\Requests\Admin\Insurance\UpdateInsuranceProviderRequest;
+use App\Models\InsuranceProvider;
+use Illuminate\Http\RedirectResponse;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class InsuranceProviderController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    public function index(): Response
     {
-        //
+        $providers = InsuranceProvider::latest()->paginate(15);
+
+        return Inertia::render('Admin/Insurance/Providers/Index', [
+            'providers' => $providers,
+        ]);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    public function create(): Response
     {
-        //
+        return Inertia::render('Admin/Insurance/Providers/Create');
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
+    public function store(StoreInsuranceProviderRequest $request): RedirectResponse
     {
-        //
+        $validated = $request->validated();
+        $validated['is_active'] = $validated['is_active'] ?? true;
+
+        InsuranceProvider::create($validated);
+
+        return redirect()->route('admin.insurance.providers.index')
+            ->with('success', 'Insurance provider created successfully.');
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
+    public function show(InsuranceProvider $provider): Response
     {
-        //
+        $provider->loadCount('claims');
+
+        return Inertia::render('Admin/Insurance/Providers/Show', [
+            'provider' => $provider,
+        ]);
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
+    public function edit(InsuranceProvider $provider): Response
     {
-        //
+        return Inertia::render('Admin/Insurance/Providers/Edit', [
+            'provider' => $provider,
+        ]);
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
+    public function update(UpdateInsuranceProviderRequest $request, InsuranceProvider $provider): RedirectResponse
     {
-        //
+        $provider->update($request->validated());
+
+        return redirect()->route('admin.insurance.providers.show', $provider)
+            ->with('success', 'Insurance provider updated successfully.');
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
+    public function destroy(InsuranceProvider $provider): RedirectResponse
     {
-        //
+        if ($provider->claims()->exists()) {
+            return redirect()->back()
+                ->with('error', 'Cannot delete insurance provider with existing claims.');
+        }
+
+        $provider->delete();
+
+        return redirect()->route('admin.insurance.providers.index')
+            ->with('success', 'Insurance provider deleted successfully.');
     }
 }

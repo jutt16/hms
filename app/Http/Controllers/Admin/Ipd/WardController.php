@@ -3,10 +3,11 @@
 namespace App\Http\Controllers\Admin\Ipd;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\Ipd\StoreWardRequest;
+use App\Http\Requests\Admin\Ipd\UpdateWardRequest;
 use App\Models\Ward;
 use App\Services\IpdService;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -30,18 +31,9 @@ class WardController extends Controller
         return Inertia::render('Admin/Ipd/Wards/Create');
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(StoreWardRequest $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'ward_number' => ['required', 'string', 'max:50', 'unique:wards,ward_number'],
-            'name' => ['required', 'string', 'max:255'],
-            'type' => ['required', 'string', 'max:100'],
-            'total_beds' => ['required', 'integer', 'min:1'],
-            'charge_per_day' => ['nullable', 'numeric', 'min:0'],
-            'description' => ['nullable', 'string'],
-            'is_active' => ['sometimes', 'boolean'],
-        ]);
-
+        $validated = $request->validated();
         $validated['available_beds'] = $validated['total_beds'];
         $validated['is_active'] = $validated['is_active'] ?? true;
 
@@ -69,17 +61,9 @@ class WardController extends Controller
         ]);
     }
 
-    public function update(Request $request, Ward $ward): RedirectResponse
+    public function update(UpdateWardRequest $request, Ward $ward): RedirectResponse
     {
-        $validated = $request->validate([
-            'ward_number' => ['required', 'string', 'max:50', 'unique:wards,ward_number,'.$ward->id],
-            'name' => ['required', 'string', 'max:255'],
-            'type' => ['required', 'string', 'max:100'],
-            'total_beds' => ['required', 'integer', 'min:1'],
-            'charge_per_day' => ['nullable', 'numeric', 'min:0'],
-            'description' => ['nullable', 'string'],
-            'is_active' => ['sometimes', 'boolean'],
-        ]);
+        $validated = $request->validated();
 
         // Calculate available beds if total_beds changed
         if (isset($validated['total_beds']) && $validated['total_beds'] != $ward->total_beds) {

@@ -7,10 +7,17 @@ use App\Http\Controllers\Admin\Insurance\InsuranceClaimController as AdminInsura
 use App\Http\Controllers\Admin\Insurance\InsuranceProviderController as AdminInsuranceProviderController;
 use App\Http\Controllers\Admin\Ipd\AdmissionController as AdminIpdAdmissionController;
 use App\Http\Controllers\Admin\Ipd\BedController as AdminIpdBedController;
+use App\Http\Controllers\Admin\Ipd\MedicationChartController as AdminIpdMedicationChartController;
+use App\Http\Controllers\Admin\Ipd\NursingNoteController as AdminIpdNursingNoteController;
+use App\Http\Controllers\Admin\Ipd\VitalSignController as AdminIpdVitalSignController;
 use App\Http\Controllers\Admin\Ipd\WardController as AdminIpdWardController;
 use App\Http\Controllers\Admin\PatientController as AdminPatientController;
 use App\Http\Controllers\Admin\PatientReportController as AdminPatientReportController;
 use App\Http\Controllers\Admin\ReportController as AdminReportController;
+use App\Http\Controllers\Admin\Staff\AttendanceController as AdminStaffAttendanceController;
+use App\Http\Controllers\Admin\Staff\LeaveController as AdminStaffLeaveController;
+use App\Http\Controllers\Admin\Staff\PayrollController as AdminStaffPayrollController;
+use App\Http\Controllers\Admin\Staff\ShiftController as AdminStaffShiftController;
 use App\Http\Controllers\Admin\Staff\StaffController as AdminStaffStaffController;
 use App\Http\Controllers\Admin\SystemSettingController as AdminSystemSettingController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
@@ -94,21 +101,34 @@ Route::middleware(['auth', 'role:admin|super-admin'])->prefix('admin')->name('ad
         Route::post('/admissions/{admission}/discharge', [AdminIpdAdmissionController::class, 'discharge'])->name('admissions.discharge');
         Route::resource('wards', AdminIpdWardController::class);
         Route::resource('beds', AdminIpdBedController::class);
+        Route::resource('vital-signs', AdminIpdVitalSignController::class);
+        Route::resource('nursing-notes', AdminIpdNursingNoteController::class);
+        Route::resource('medication-charts', AdminIpdMedicationChartController::class);
     });
 
     // Staff & HR Management
     Route::prefix('staff')->name('staff.')->group(function () {
         Route::resource('staff', AdminStaffStaffController::class);
+        Route::resource('attendances', AdminStaffAttendanceController::class);
+        Route::resource('payrolls', AdminStaffPayrollController::class);
+        Route::post('/payrolls/{payroll}/process', [AdminStaffPayrollController::class, 'process'])->name('payrolls.process');
+        Route::resource('leaves', AdminStaffLeaveController::class);
+        Route::post('/leaves/{leave}/approve', [AdminStaffLeaveController::class, 'approve'])->name('leaves.approve');
+        Route::post('/leaves/{leave}/reject', [AdminStaffLeaveController::class, 'reject'])->name('leaves.reject');
+        Route::resource('shifts', AdminStaffShiftController::class);
     });
 
     // Insurance Management
     Route::prefix('insurance')->name('insurance.')->group(function () {
         Route::resource('providers', AdminInsuranceProviderController::class);
         Route::resource('claims', AdminInsuranceClaimController::class);
+        Route::post('/claims/{claim}/approve', [AdminInsuranceClaimController::class, 'approve'])->name('claims.approve');
+        Route::post('/claims/{claim}/reject', [AdminInsuranceClaimController::class, 'reject'])->name('claims.reject');
     });
 
     // Patient Reports
     Route::resource('patient-reports', AdminPatientReportController::class);
+    Route::get('/patient-reports/{patientReport}/download', [AdminPatientReportController::class, 'download'])->name('patient-reports.download');
 });
 
 // Doctor Routes

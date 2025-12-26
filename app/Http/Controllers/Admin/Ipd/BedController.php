@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Admin\Ipd;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\Ipd\StoreBedRequest;
+use App\Http\Requests\Admin\Ipd\UpdateBedRequest;
 use App\Models\Bed;
 use App\Models\Ward;
 use Illuminate\Http\RedirectResponse;
@@ -43,15 +45,9 @@ class BedController extends Controller
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(StoreBedRequest $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'ward_id' => ['required', 'exists:wards,id'],
-            'bed_number' => ['required', 'string', 'max:50'],
-            'notes' => ['nullable', 'string'],
-            'is_active' => ['sometimes', 'boolean'],
-        ]);
-
+        $validated = $request->validated();
         $validated['status'] = 'available';
         $validated['is_active'] = $validated['is_active'] ?? true;
 
@@ -86,17 +82,9 @@ class BedController extends Controller
         ]);
     }
 
-    public function update(Request $request, Bed $bed): RedirectResponse
+    public function update(UpdateBedRequest $request, Bed $bed): RedirectResponse
     {
-        $validated = $request->validate([
-            'ward_id' => ['sometimes', 'required', 'exists:wards,id'],
-            'bed_number' => ['sometimes', 'required', 'string', 'max:50'],
-            'status' => ['sometimes', 'required', 'in:available,occupied,maintenance,reserved'],
-            'notes' => ['nullable', 'string'],
-            'is_active' => ['sometimes', 'boolean'],
-        ]);
-
-        $bed->update($validated);
+        $bed->update($request->validated());
 
         return redirect()->route('admin.ipd.beds.show', $bed)
             ->with('success', 'Bed updated successfully.');
