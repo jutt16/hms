@@ -1,11 +1,8 @@
-import { Head, Link } from '@inertiajs/react';
+import { Link } from '@inertiajs/react';
 import { Form } from '@inertiajs/react';
 import AuthenticatedLayout from '@/components/AuthenticatedLayout';
-import { PageProps } from '@/types';
 
-interface DiagnosisTemplatesCreateProps extends PageProps {}
-
-export default function Create({}: DiagnosisTemplatesCreateProps) {
+export default function Create() {
     return (
         <AuthenticatedLayout title="Create Diagnosis Template">
             <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">

@@ -1,11 +1,8 @@
-import { Head, Link } from '@inertiajs/react';
+import { Link } from '@inertiajs/react';
 import { Form } from '@inertiajs/react';
 import AuthenticatedLayout from '@/components/AuthenticatedLayout';
-import { PageProps } from '@/types';
 
-interface StaffCreateProps extends PageProps {}
-
-export default function Create({}: StaffCreateProps) {
+export default function Create() {
     return (
         <AuthenticatedLayout title="Create Staff">
             <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">

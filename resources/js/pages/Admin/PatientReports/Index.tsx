@@ -1,4 +1,4 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Link, router } from '@inertiajs/react';
 import AuthenticatedLayout from '@/components/AuthenticatedLayout';
 import { PageProps } from '@/types';
 
@@ -40,7 +40,7 @@ export default function Index({ reports, patients, filters }: PatientReportsInde
         }
     };
 
-    const handleDownload = (filePath: string, reportType: string) => {
+    const handleDownload = (filePath: string) => {
         window.open(`/storage/${filePath}`, '_blank');
     };
 
@@ -144,7 +144,7 @@ export default function Index({ reports, patients, filters }: PatientReportsInde
                                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                                 <div className="flex justify-end gap-2">
                                                     <button
-                                                        onClick={() => handleDownload(report.file_path, report.report_type)}
+                                                        onClick={() => handleDownload(report.file_path)}
                                                         className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300"
                                                     >
                                                         Download

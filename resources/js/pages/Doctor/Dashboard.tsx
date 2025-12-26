@@ -1,4 +1,4 @@
-import { PageProps } from '@/types';
+import { PageProps, Appointment } from '@/types';
 import AuthenticatedLayout from '@/components/AuthenticatedLayout';
 
 interface DashboardProps extends PageProps {
@@ -8,8 +8,8 @@ interface DashboardProps extends PageProps {
         completed_today: number;
         pending_appointments: number;
     };
-    todayAppointments: any[];
-    upcomingAppointments: any[];
+    todayAppointments: Appointment[];
+    upcomingAppointments: Appointment[];
 }
 
 export default function Dashboard({ stats, todayAppointments, upcomingAppointments }: DashboardProps) {

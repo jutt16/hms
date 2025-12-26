@@ -1,4 +1,4 @@
-import { Head, Link, router, usePage } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 import { PageProps } from '@/types';
 import { Form } from '@inertiajs/react';
 
@@ -12,15 +12,11 @@ export default function AuthenticatedLayout({ children, title, header }: Authent
     const { auth } = usePage<PageProps>().props;
     const user = auth.user;
 
-    const handleLogout = () => {
-        router.post('/logout');
-    };
-
     const getDashboardRoute = () => {
         if (!user) return '/';
         
         // Check user roles (now sent as array of strings from middleware)
-        const roles = (user as any).roles || [];
+        const roles = (user as { roles?: string[] }).roles || [];
         
         if (roles.includes('super-admin') || roles.includes('admin')) {
             return '/admin/dashboard';

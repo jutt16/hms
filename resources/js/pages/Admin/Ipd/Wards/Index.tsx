@@ -1,4 +1,4 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Link, router } from '@inertiajs/react';
 import AuthenticatedLayout from '@/components/AuthenticatedLayout';
 import { PageProps } from '@/types';
 
@@ -25,7 +25,7 @@ interface WardsIndexProps extends PageProps {
     };
 }
 
-export default function Index({ wards, filters }: WardsIndexProps) {
+export default function Index({ wards }: WardsIndexProps) {
     const handleDelete = (id: number) => {
         if (confirm('Are you sure you want to delete this ward?')) {
             router.delete(`/admin/ipd/wards/${id}`);

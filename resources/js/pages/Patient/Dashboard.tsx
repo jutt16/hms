@@ -2,6 +2,36 @@ import { Link } from '@inertiajs/react';
 import { PageProps } from '@/types';
 import AuthenticatedLayout from '@/components/AuthenticatedLayout';
 
+interface Appointment {
+    id: number;
+    appointment_date: string;
+    appointment_time: string;
+    status: string;
+    doctor: {
+        user: {
+            name: string;
+        };
+    };
+}
+
+interface Prescription {
+    id: number;
+    prescription_date: string;
+    doctor: {
+        user: {
+            name: string;
+        };
+    };
+}
+
+interface Bill {
+    id: number;
+    bill_number: string;
+    total_amount: number;
+    balance: number;
+    status: string;
+}
+
 interface DashboardProps extends PageProps {
     stats: {
         upcoming_appointments: number;
@@ -9,9 +39,9 @@ interface DashboardProps extends PageProps {
         pending_bills: number;
         total_prescriptions: number;
     };
-    upcomingAppointments: any[];
-    recentPrescriptions: any[];
-    pendingBills: any[];
+    upcomingAppointments: Appointment[];
+    recentPrescriptions: Prescription[];
+    pendingBills: Bill[];
     error?: string;
 }
 
