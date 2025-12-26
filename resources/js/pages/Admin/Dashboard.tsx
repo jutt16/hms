@@ -1,5 +1,5 @@
-import { Head } from '@inertiajs/react';
 import { PageProps, Appointment } from '@/types';
+import AuthenticatedLayout from '@/components/AuthenticatedLayout';
 
 interface DashboardProps extends PageProps {
     stats: {
@@ -31,13 +31,11 @@ interface DashboardProps extends PageProps {
 
 export default function Dashboard({ stats }: DashboardProps) {
     return (
-        <>
-            <Head title="Admin Dashboard" />
-            <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-                <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-                    <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">
-                        Admin Dashboard
-                    </h1>
+        <AuthenticatedLayout title="Admin Dashboard">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">
+                    Admin Dashboard
+                </h1>
 
                     <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 mb-6">
                         <div className="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
@@ -129,8 +127,7 @@ export default function Dashboard({ stats }: DashboardProps) {
                         </div>
                     </div>
                 </div>
-            </div>
-        </>
+        </AuthenticatedLayout>
     );
 }
 
